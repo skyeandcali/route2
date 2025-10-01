@@ -47,19 +47,25 @@
     .clock{font-weight:900}
     .actions-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 
-    /* iOS-style toggle */
-    .switch{--w:46px;--h:26px;position:relative;width:var(--w);height:var(--h)}
+    /* iOS-style toggle (compact) */
+    .switch{
+      --w: 36px;      /* width */
+      --h: 20px;      /* height */
+      --pad: 2px;     /* inner padding */
+      --thumb: calc(var(--h) - var(--pad)*2);
+      position:relative; width:var(--w); height:var(--h)
+    }
     .switch input{position:absolute;opacity:0;inset:0}
     .track{
-      width:100%;height:100%;background:#9ca3af;border-radius:999px;box-shadow: inset 0 1px 3px rgba(0,0,0,.3);
-      transition:background .2s ease; display:block;
+      width:100%;height:100%;background:#9ca3af;border-radius:999px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.3); transition:background .2s ease; display:block;
     }
     .thumb{
-      position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;
-      background:white;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:left .2s ease;
+      position:absolute;top:var(--pad);left:var(--pad);width:var(--thumb);height:var(--thumb);
+      border-radius:50%;background:white;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:left .2s ease;
     }
     .switch input:checked + .track{background:#8b5cf6}
-    .switch input:checked + .track + .thumb{left:22px}
+    .switch input:checked + .track + .thumb{left: calc(var(--w) - var(--pad) - var(--thumb))}
 
     .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--card-border);background:transparent;color:var(--text);cursor:pointer;font-weight:800;letter-spacing:.2px}
     .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border:0;color:#111}
@@ -204,14 +210,11 @@
     const arrivalsAt=(id,m)=>tfl(\`https://api.tfl.gov.uk/StopPoint/\${encodeURIComponent(id)}/Arrivals?\${qs({modes:m})}\`);
     const vehicleArrivals=vid=>tfl(\`https://api.tfl.gov.uk/Vehicle/\${encodeURIComponent(vid)}/Arrivals?\${qs({modes:'bus'})}\`);
     function matchByLine(rows,line){const w=String(line).toUpperCase().trim();return rows.filter(r=>{const id=String(r.lineId||'').toUpperCase().trim(); const nm=String(r.lineName||'').toUpperCase().trim(); return id===w||nm===w||id.startsWith(w)||nm.startsWith(w);});}
-    function soonestMins(items){
-      items.sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
-      if(!items.length) return null;
-      const d=(new Date(items[0].expectedArrival)-new Date())/60000;
-      return Math.max(0, Math.round(d));
-    }
+    function minsUntil(ts){ return Math.max(0, Math.round((new Date(ts)-new Date())/60000)); }
+    function soonestMins(items){ items.sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival)); if(!items.length) return null; return minsUntil(items[0].expectedArrival); }
     const norm=id=>id?String(id).match(/^\\d+/)?.[0]||String(id):'';
-    const fmtClock=m=>{const when=new Date(Date.now()+Math.max(0,m)*60000); return \`\${String(when.getHours()).padStart(2,'0')}:\${String(when.getMinutes()).padStart(2,'0')} · in \${Math.max(0,m)}m\`;};
+    const fmtAbs=m=>{const when=new Date(Date.now()+Math.max(0,m)*60000); return \`\${String(when.getHours()).padStart(2,'0')}:\${String(when.getMinutes()).padStart(2,'0')}\`;};
+    const fmtClock=m=>\`\${fmtAbs(m)} (in \${m}m)\`;
 
     /* ==== ETA smoothing & formatting ==== */
     const etaCache = new Map(); // key -> last smoothed minutes
@@ -238,52 +241,53 @@
     /* ==== Bus data ==== */
     const routesConfig={
       morning:[
-        {vips:"", line:"268", origin:"Haverstock Hill", destination:"Golders Green Bus Station", stopLetter:"H",  stopId:"490003874H"},
-        {vips:"", line:"268", origin:"Rosslyn Hill",   destination:"Golders Green Bus Station", stopLetter:"G",  stopId:"490015255G"},
-        {vips:"", line:"210", origin:"Brent Cross Tesco", destination:"Golders Green Bus Station", stopLetter:"T",  stopId:"490004284T"},
-        {vips:"", line:"102", origin:"Claremont Way",  destination:"Golders Green Bus Station", stopLetter:"A",  stopId:"490005434S"},
-        {vips:"", line:"SL10", origin:"Hendon Central Station", destination:"North Finchley Bus Station", stopLetter:"A",  stopId:"490000106A"},
-        {vips:"", line:"13",  origin:"Golders Green",  destination:"North Finchley Bus Station", stopLetter:"GU", stopId:"490015496GU"},
-        {vips:"", line:"460", origin:"Golders Green",  destination:"North Finchley Bus Station", stopLetter:"GU", stopId:"490015496GU"},
+        {line:"268", origin:"Haverstock Hill", destination:"Golders Green Bus Station", stopLetter:"H",  stopId:"490003874H"},
+        {line:"268", origin:"Rosslyn Hill",   destination:"Golders Green Bus Station", stopLetter:"G",  stopId:"490015255G"},
+        {line:"210", origin:"Brent Cross Tesco", destination:"Golders Green Bus Station", stopLetter:"T",  stopId:"490004284T"},
+        {line:"102", origin:"Claremont Way",  destination:"Golders Green Bus Station", stopLetter:"A",  stopId:"490005434S"},
+        {line:"SL10", origin:"Hendon Central Station", destination:"North Finchley Bus Station", stopLetter:"A",  stopId:"490000106A"},
+        {line:"13",  origin:"Golders Green",  destination:"North Finchley Bus Station", stopLetter:"GU", stopId:"490015496GU"},
+        {line:"460", origin:"Golders Green",  destination:"North Finchley Bus Station", stopLetter:"GU", stopId:"490015496GU"},
       ],
       afternoon:[
-        {vips:"", line:"460", origin:"North Finchley Bus Station", destination:"Golders Green Bus Station", stopLetter:"P",  stopId:"490015443P"},
-        {vips:"", line:"13",  origin:"North Finchley Bus Station", destination:"Golders Green Bus Station", stopLetter:"P",  stopId:"490015443P"},
-        {vips:"", line:"SL10", origin:"North Finchley Bus Station", destination:"Hendon Central", stopLetter:"H", stopId:"490010369H"},
-        {vips:"", line:"268", origin:"Golders Green", destination:"Pond Street / Royal Free", stopLetter:"GJ", stopId:"490000087GJ"},
-        {vips:"", line:"102", origin:"Golders Green Station", destination:"Claremont Way", stopLetter:"GV", stopId:"490015496GV"},
-        {vips:"", line:"210", origin:"Golders Green", destination:"Brent Cross Underground", stopLetter:"GK", stopId:"490000087GK"},
+        {line:"460", origin:"North Finchley Bus Station", destination:"Golders Green Bus Station", stopLetter:"P",  stopId:"490015443P"},
+        {line:"13",  origin:"North Finchley Bus Station", destination:"Golders Green Bus Station", stopLetter:"P",  stopId:"490015443P"},
+        {line:"SL10", origin:"North Finchley Bus Station", destination:"Hendon Central", stopLetter:"H", stopId:"490010369H"},
+        {line:"268", origin:"Golders Green", destination:"Pond Street / Royal Free", stopLetter:"GJ", stopId:"490000087GJ"},
+        {line:"102", origin:"Golders Green Station", destination:"Claremont Way", stopLetter:"GV", stopId:"490015496GV"},
+        {line:"210", origin:"Golders Green", destination:"Brent Cross Underground", stopLetter:"GK", stopId:"490000087GK"},
       ]
     };
 
-    /* ==== VIP blazer SVG ==== */
+    /* ==== VIP chips (optional visuals) ==== */
     function blazerSVG(letter){
       return \`
       <svg viewBox="0 0 64 64" aria-hidden="true">
         <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>
-        <path d="M9,8 h46 a6,6 0 0 1 6,6 v36 a6,6 0 0 1 -6,6 H9 a6,6 0 0 1 -6,-6 V14 a6,6 0 0 1 6,-6 z" fill="url(#g)" />
+        <path d="M9,8 h46 a6,6 0 0 1 6,6 v36 a6,6 0 0 1 -6,6 H9 a6,6 0 0 1 6,-6 V14 a6,6 0 0 1 6,-6 z" fill="url(#g)" />
         <path d="M23 12 L32 28 L41 12" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
         <path d="M18 19 L25 24 M39 24 L46 19" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
         <text x="32" y="46" text-anchor="middle" font-family="Inter,system-ui" font-size="26" font-weight="800" fill="white">\${letter}</text>
       </svg>\`;
     }
-
-    /* ==== VIP localStorage ==== */
     const VIP_STORE_KEY='vip_marked_v1';
     const getVipStore=()=>{try{return JSON.parse(localStorage.getItem(VIP_STORE_KEY)||'{}')}catch{return{}}};
-    const setVipStore=(obj)=>localStorage.setItem(VIP_STORE_KEY,JSON.stringify(obj));
+    const setVipStore=obj=>localStorage.setItem(VIP_STORE_KEY,JSON.stringify(obj));
     const rowKey=(which,i)=>\`\${which}:\${i}\`;
     function getMarked(which,i){ return new Set(getVipStore()[rowKey(which,i)]||[]); }
     function saveMarked(which,i,set){ const all=getVipStore(); all[rowKey(which,i)]=[...set]; setVipStore(all); }
 
     /* ==== Tracker shared state ==== */
-    const trackerCard=document.getElementById('trackerCard'), trackMeta=document.getElementById('trackMeta'),
-          trackBar=document.getElementById('trackBar'), trackFooter=document.getElementById('trackFooter'),
-          lockBadge=document.getElementById('lockBadge'), unlockBtn=document.getElementById('unlockBtn'),
+    const trackerCard=document.getElementById('trackerCard'),
+          trackMeta=document.getElementById('trackMeta'),
+          trackBar=document.getElementById('trackBar'),
+          trackFooter=document.getElementById('trackFooter'),
+          lockBadge=document.getElementById('lockBadge'),
+          unlockBtn=document.getElementById('unlockBtn'),
           toast=document.getElementById('toast');
 
     let currentView='morning', selectedIndex=null, selectedItem=null, selectedVehicleId=null, isLocked=false, routeSlice=null, destIndex=null;
-    let lockTicker=null; // NEW: faster polling when locked
+    let lockTicker=null; // faster polling when locked
     const BUS_SVG=\`<svg viewBox="0 0 32 32" role="img" aria-label="Bus"><rect x="2" y="8" width="28" height="12" rx="3" ry="3" fill="#e11d48"/><rect x="4" y="10" width="10" height="5" rx="2" ry="2" fill="white" opacity=".9"/><rect x="16" y="10" width="10" height="5" rx="2" ry="2" fill="white" opacity=".9"/><circle cx="9" cy="22" r="3" fill="#0b0b0b"/><circle cx="23" cy="22" r="3" fill="#0b0b0b"/></svg>\`;
     const showToast=msg=>{toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1500);};
 
@@ -292,22 +296,27 @@
       lockTicker=setInterval(async ()=>{
         if(selectedItem && selectedVehicleId){
           try{
-            const which=currentView;
-            const i=selectedIndex;
+            const which=currentView, i=selectedIndex;
             const etaEl=document.getElementById(\`bus-\${which}-\${i}\`);
             if(etaEl){
               const m=await etaForVehicleAtStop(selectedVehicleId, selectedItem.stopId);
               const key=\`\${which}:\${i}\`;
               const sm=smoothMins(key, m==null?null:m);
-              etaEl.textContent = sm==null ? '—' : (sm<=2 ? 'Arriving' : formatEta(sm));
+              if(sm==null){ etaEl.textContent='—'; etaEl.style.color='var(--muted)'; etaEl.removeAttribute('title'); }
+              else{
+                etaEl.textContent = sm<=2 ? 'Arriving' : \`\${fmtAbs(sm)} (\${sm}m)\`;
+                etaEl.style.color = sm<=2 ? 'var(--good)' : (sm<=8?'var(--warn)':'var(--text)');
+                etaEl.title = fmtClock(sm);
+              }
             }
           }catch{}
         }
         paintTracker();
-      }, 10000); // 10s when locked
+      }, 10000);
     }
     function stopLockTicker(){ if(lockTicker){ clearInterval(lockTicker); lockTicker=null; } }
 
+    /* ==== Route helpers ==== */
     async function getRouteSlice(line,startStopId){
       const dirs=['inbound','outbound'], base=norm(startStopId);
       for(const d of dirs){
@@ -326,9 +335,10 @@
       try{ const arr=await arrivalsAt(stopId,'bus'); const match=matchByLine(arr,line).sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival)); return match[0]?.vehicleId||null; }catch{ return null;}
     }
     async function etaForVehicleAtStop(vid, stopId){
-      try{ const arr=await arrivalsAt(stopId,'bus'); const m=arr.find(a=>String(a.vehicleId||'')===String(vid||'')); if(!m) return null; return Math.max(0,Math.round((new Date(m.expectedArrival)-new Date())/60000)); }catch{ return null;}
+      try{ const arr=await arrivalsAt(stopId,'bus'); const m=arr.find(a=>String(a.vehicleId||'')===String(vid||'')); if(!m) return null; return minsUntil(m.expectedArrival); }catch{ return null;}
     }
 
+    /* ==== Tracker painter ==== */
     async function paintTracker(){
       if(!selectedItem || !selectedItem.stopId || !routeSlice){ trackBar.innerHTML='<span class="muted">Select a row to track.</span>'; trackFooter.textContent='—'; return; }
       if(!selectedVehicleId) selectedVehicleId = await pickActiveVehicle(selectedItem.line, selectedItem.stopId);
@@ -336,10 +346,10 @@
 
       const etas=await Promise.all(slice.map(async s=>{
         if(selectedVehicleId){ const m=await etaForVehicleAtStop(selectedVehicleId,s.id); if(m!=null) return m; }
-        try{ const arr=await arrivalsAt(s.id,'bus'); const match=matchByLine(arr,selectedItem.line).sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival)); return match[0]?Math.max(0,Math.round((new Date(match[0].expectedArrival)-new Date())/60000)):null; }catch{ return null; }
+        try{ const arr=await arrivalsAt(s.id,'bus'); const match=matchByLine(arr,selectedItem.line).sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival)); return match[0]?minsUntil(match[0].expectedArrival):null; }catch{ return null; }
       }));
 
-      // Render dots with absolute time tooltip
+      // Render dots with absolute+relative in tooltip
       trackBar.innerHTML='';
       slice.forEach((s,i)=>{ const dot=document.createElement('div'); dot.className='stop-dot'; const mins=etas[i]; const tt=document.createElement('div'); tt.className='tt'; tt.innerHTML=\`<strong>\${s.name}</strong> · \${mins==null?'—':fmtClock(mins)}\`; dot.appendChild(tt); if(i<slice.length-1){ const link=document.createElement('div'); link.className='link'; dot.appendChild(link);} trackBar.appendChild(dot); });
 
@@ -380,6 +390,7 @@
       }
     }
 
+    /* ==== Selection & locking ==== */
     async function selectRow(i){
       selectedIndex=i; selectedItem=routesConfig[currentView][i];
       if(!selectedItem.stopId) selectedItem.stopId=await resolveChildByLetter(selectedItem.origin,selectedItem.stopLetter);
@@ -390,18 +401,17 @@
       const rows=[...document.querySelectorAll('tbody tr[data-clickable="1"]')]; if(rows[i]) rows[i].classList.add('selected');
       await paintTracker();
     }
-
     function lockVehicle(vid){
       if(!vid){ showToast('No vehicle id yet'); return; }
       selectedVehicleId=vid; isLocked=true;
       lockBadge.style.display=''; unlockBtn.style.display='';
-      startLockTicker(); // NEW
+      startLockTicker();
       showToast(\`Locked to vehicle \${vid}\`);
     }
     function unlockVehicle(){
       isLocked=false; lockBadge.style.display='none'; unlockBtn.style.display='none';
-      stopLockTicker(); // NEW
-      if(selectedIndex!=null){ const etaEl=document.getElementById(\`bus-\${currentView}-\${selectedIndex}\`); if(etaEl){ etaEl.textContent='—'; etaEl.style.color='var(--text)'; } }
+      stopLockTicker();
+      if(selectedIndex!=null){ const etaEl=document.getElementById(\`bus-\${currentView}-\${selectedIndex}\`); if(etaEl){ etaEl.textContent='—'; etaEl.style.color='var(--text)'; etaEl.removeAttribute('title'); } }
       showToast('Unlocked');
     }
     unlockBtn.onclick=unlockVehicle;
@@ -421,7 +431,7 @@
       const rows=routesConfig[which];
       const head=\`<thead><tr>
         <th>VIPs</th><th>Board at</th><th>Origin</th><th>Destination</th><th>Line</th>
-        <th style="text-align:right">Arrives</th><th style="text-align:right">Vehicle</th>
+        <th style="text-align:right">Arrives (local)</th><th style="text-align:right">Vehicle</th>
       </tr></thead>\`;
       const body=rows.map((r,i)=>\`
         <tr data-clickable="1" data-idx="\${i}">
@@ -478,6 +488,7 @@
       }
     }
 
+    /* ==== Updaters (shows absolute + relative) ==== */
     async function updateBus(which){
       const rows=routesConfig[which];
       await Promise.all(rows.map(async (r,i)=>{
@@ -485,8 +496,9 @@
         const vehEl=document.getElementById(\`veh-\${which}-\${i}\`);
         try{
           let sid=r.stopId || await resolveChildByLetter(r.origin,r.stopLetter);
-          if(!sid){ etaEl.textContent='—'; etaEl.style.color='var(--muted)'; vehEl.textContent='—'; return; }
+          if(!sid){ etaEl.textContent='—'; etaEl.style.color='var(--muted)'; etaEl.removeAttribute('title'); vehEl.textContent='—'; return; }
           r.stopId=sid;
+
           const data=await arrivalsAt(sid,'bus');
           const match=matchByLine(data,r.line).sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
           const vid=match[0]?.vehicleId||null;
@@ -494,19 +506,26 @@
 
           if(selectedIndex===i && !isLocked && vid){ selectedVehicleId=vid; } // follow if not locked
 
-          // compute minutes
           let mins=soonestMins(match);
           const key=\`\${which}:\${i}\`;
           mins = smoothMins(key, mins);
 
-          if(!(selectedIndex===i && isLocked)){
-            etaEl.textContent = formatEta(mins);
-            etaEl.title = mins==null ? '' : fmtClock(mins); // absolute time on hover
-            etaEl.style.color = mins==null ? 'var(--muted)'
-              : (mins<=2 ? 'var(--good)' : (mins<=8 ? 'var(--warn)' : 'var(--text)'));
+          if(mins==null){
+            etaEl.textContent='—';
+            etaEl.style.color='var(--muted)';
+            etaEl.removeAttribute('title');
+          }else if(mins<=0){
+            etaEl.textContent='Due';
+            etaEl.style.color='var(--good)';
+            etaEl.title = fmtClock(0);
+          }else{
+            // show absolute + relative inline
+            etaEl.textContent = \`\${fmtAbs(mins)} (\${mins}m)\`;
+            etaEl.title = fmtClock(mins);
+            etaEl.style.color = mins<=2 ? 'var(--good)' : (mins<=8 ? 'var(--warn)' : 'var(--text)');
           }
         }catch{
-          etaEl.textContent='—'; etaEl.style.color='var(--muted)'; vehEl.textContent='—';
+          etaEl.textContent='—'; etaEl.style.color='var(--muted)'; etaEl.removeAttribute('title'); vehEl.textContent='—';
         }
       }));
       if(selectedItem && (currentView==='morning'||currentView==='afternoon')) await paintTracker();
@@ -545,8 +564,8 @@
     import { getDatabase, ref, update, onValue } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
-    async function publish(vehicleId, payload){ if(!vehicleId) return; await update(ref(db, \`vehicles/\${vehicleId}\`), payload); }
-    function subscribe(vehicleId, cb){ if(!vehicleId) return ()=>{}; const off=onValue(ref(db,\`vehicles/\${vehicleId}\`), s=>cb(s.exists()?s.val():null)); return ()=>off(); }
+    async function publish(vehicleId, payload){ if(!vehicleId) return; await update(ref(db, `vehicles/${vehicleId}`), payload); }
+    function subscribe(vehicleId, cb){ if(!vehicleId) return ()=>{}; const off=onValue(ref(db,`vehicles/${vehicleId}`), s=>cb(s.exists()?s.val():null)); return ()=>off(); }
     window.fbShare = { publish, subscribe };
   </script>
 </body>
