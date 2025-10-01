@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Live TfL Bus & Tube Board (Smoothed)</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#8b5cf6">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f1220; --grad-a:#1b0f2e; --grad-b:#0f1220;
+      --card:rgba(23,26,46,.92); --muted:#8a91b4; --text:#f3f5ff;
+      --accent:#8b5cf6; --accent-2:#a78bfa; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --info:#22d3ee;
+      --card-border:rgba(255,255,255,.08); --chip-text:#111; --chip-shadow:rgba(0,0,0,.28); --table-shadow:rgba(0,0,0,.35);
+      --line-268:#fb7185; --line-13:#fde047; --line-460:#60a5fa; --line-102:#34d399; --line-210:#f472b6;
+      --tag:#101327;
+    }
+    [data-theme="light"]{
+      --bg:#faf7ff; --grad-a:#ede9fe; --grad-b:#f5d0fe;
+      --card:rgba(255,255,255,.94); --muted:#5b5f7a; --text:#0f1220;
+      --accent:#7c3aed; --accent-2:#c084fc; --good:#16a34a; --warn:#d97706; --bad:#b91c1c; --info:#0891b2;
+      --card-border:rgba(17,17,17,.10); --chip-text:#111; --chip-shadow:rgba(0,0,0,.14); --table-shadow:rgba(0,0,0,.12);
+      --tag:#ffffff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif; color:var(--text);
+      background:
+        radial-gradient(1100px 600px at 80% -10%, var(--grad-a) 0%, rgba(27,31,56,0) 60%),
+        radial-gradient(1200px 800px at -10% -30%, var(--accent) 0%, rgba(30,27,75,0) 60%),
+        linear-gradient(135deg, var(--grad-a), var(--grad-b));
+    }
+    .wrap{width:100%; max-width:1180px; margin:18px auto 28px; padding:0 12px}
+
+    header{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+    .weather-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .title-row{display:flex;flex-direction:column;gap:4px}
+    .actions-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    h1{font-size:20px;margin:0}
+    .sub{color:var(--muted);font-size:13px}
+    .clock{font-weight:900}
+    .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--card-border);background:transparent;color:var(--text);cursor:pointer;font-weight:800;letter-spacing:.2px}
+    .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border:0;color:#111}
+
+    @media (min-width:860px){
+      header{display:grid;grid-template-columns:1fr auto auto;grid-template-areas:"title weather actions";align-items:center}
+      .title-row{grid-area:title}
+      .weather-row{grid-area:weather;justify-self:end}
+      .actions-row{grid-area:actions;justify-self:end}
+    }
+
+    .card{background:var(--card);border:1px solid var(--card-border);box-shadow:0 14px 34px var(--table-shadow);backdrop-filter:blur(8px);border-radius:16px;margin-bottom:14px}
+    .tabs{display:flex;gap:8px;padding:10px}
+    .tab{flex:1;text-align:center;padding:14px 10px;border-radius:12px;cursor:pointer;color:var(--muted);
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(0,0,0,.04));border:1px solid var(--card-border);font-weight:900}
+    .tab.active{color:#111;background:linear-gradient(135deg,#e9d5ff,#a7f3d0);border:0}
+
+    .table-container{padding:8px 10px 2px;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%}
+    table{width:100%;min-width:780px;border-collapse:separate;border-spacing:0 10px}
+    thead th{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);padding:14px 12px;text-align:left}
+    tbody tr{background:var(--card);border:1px solid var(--card-border);box-shadow:0 8px 24px var(--table-shadow)}
+    tbody tr[data-clickable="1"]{cursor:pointer}
+    tbody tr.selected{outline:2px solid var(--accent-2)}
+    tbody td{padding:16px 12px;font-size:15px}
+    tbody tr td:first-child{border-radius:12px 0 0 12px}
+    tbody tr td:last-child{border-radius:0 12px 12px 0}
+
+    .chip{--c:#888;background:var(--c);color:var(--chip-text);display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:30px;padding:0 12px;border-radius:9px;font-weight:900;box-shadow:inset 0 -3px rgba(0,0,0,.15),0 6px 16px rgba(0,0,0,.25)}
+    .line-268{--c:var(--line-268)} .line-13{--c:var(--line-13)} .line-460{--c:var(--line-460)} .line-102{--c:var(--line-102)} .line-210{--c:var(--line-210)}
+    .vips{color:#c7d2fe;font-weight:900} [data-theme="light"] .vips{color:#5b21b6}
+    .stopLetter{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#d80f2f;color:#fff;font-weight:900;border:none;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+
+    .skeleton{height:14px;width:70px;border-radius:6px;background:linear-gradient(90deg,#1f243e,#2b3053,#1f243e);background-size:200% 100%;animation:shimmer 1.2s infinite}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .meta{display:flex;justify-content:space-between;gap:12px;padding:14px;color:var(--muted);font-size:12px;flex-wrap:wrap}
+
+    .status{display:flex;flex-wrap:wrap;gap:8px;padding:10px}
+    .pill{display:inline-flex;gap:8px;align-items:center;background:var(--tag);border:1px solid var(--card-border);padding:10px 12px;border-radius:12px}
+    .dot{width:10px;height:10px;border-radius:999px}
+    .sev-good{background:var(--good)} .sev-warn{background:var(--warn)} .sev-bad{background:var(--bad)} .sev-info{background:var(--info)}
+    .muted{color:var(--muted)}
+
+    /* Tube lists */
+    .tube-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:10px}
+    .tube-card{padding:12px;border:1px solid var(--card-border);border-radius:12px;background:var(--tag)}
+    .tube-title{font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+    .tube-meta{color:var(--muted);white-space:nowrap;margin-left:8px;font-size:13px}
+    .tube-btn{padding:8px 10px;border-radius:10px;border:1px solid var(--card-border);background:transparent;color:var(--text);font-weight:800;cursor:pointer}
+    .tube-list{list-style:none;margin:0;padding:0}
+    .tube-item{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--card-border)}
+    .tube-item:last-child{border-bottom:0}
+    .tube-dim{color:var(--muted);font-size:13px}
+
+    @media (max-width: 780px){
+      .tube-wrap{grid-template-columns:1fr}
+      table{min-width:700px}
+      h1{font-size:18px}
+      .sub{display:none}
+      .tabs{gap:6px;padding:8px}
+      .tab{padding:12px 8px;font-size:14px}
+      .btn{padding:10px 12px}
+    }
+
+    /* ===== Tracker ===== */
+    .tracker-card{background:var(--card);border:1px solid var(--card-border);box-shadow:0 14px 34px var(--table-shadow);border-radius:16px;margin-bottom:14px}
+    .tracker-head{font-size:16px;margin:0;padding:12px;border-bottom:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center}
+    .tracker-meta{padding:10px 12px;color:var(--muted);font-size:13px}
+    .track-wrap{
+      position:relative;margin:10px;padding:14px;border:1px dashed var(--card-border);
+      border-radius:12px;background:var(--tag);
+      overflow-x:auto; overflow-y:visible;
+    }
+    .track{position:relative;height:28px;min-width:520px;display:flex;align-items:center;gap:36px;padding:0 6px}
+    .stop-dot{position:relative;width:14px;height:14px;border-radius:999px;background:#6b7280;flex:0 0 14px;transition:transform .08s}
+    .stop-dot.past{background:var(--good)}
+    .stop-dot.next{background:var(--warn)}
+    .stop-dot.dest{box-shadow:0 0 0 3px rgba(255,255,255,.18)}
+    .stop-dot::after{content:'';position:absolute;top:6px;left:14px;width:36px;height:2px;background:rgba(255,255,255,.18)}
+    .stop-dot:last-child::after{display:none}
+    .tt{
+      position:absolute;left:50%;bottom:140%;
+      transform:translate(-50%,0) scale(.98);white-space:nowrap;
+      background:#0b0f25;border:1px solid var(--card-border);padding:6px 8px;border-radius:8px;
+      color:#fff;font-size:12px;opacity:0;visibility:hidden;pointer-events:none;
+      transition:all .12s;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:5
+    }
+    .stop-dot:hover .tt{opacity:1;visibility:visible;transform:translate(-50%,-10px) scale(1)}
+    .tt strong{font-weight:900}
+    .link{position:absolute;top:6px;left:14px;width:36px;height:2px;background:rgba(255,255,255,.18)}
+    .link.past{background:linear-gradient(90deg,var(--good),var(--good))}
+    .link.next{background:linear-gradient(90deg,var(--warn),var(--warn))}
+    .bus-dot{position:absolute;top:-4px;width:26px;height:26px;transform:translateX(-13px);display:grid;place-items:center;filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}
+    .bus-dot svg{width:26px;height:26px}
+
+    .toast{position:fixed;right:14px;bottom:14px;background:#11152c;border:1px solid var(--card-border);color:var(--text);
+      padding:10px 12px;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.35);opacity:0;transform:translateY(8px);
+      transition:all .2s;z-index:99}
+    .toast.show{opacity:1;transform:none}
+    .lock-badge{margin-left:8px;font-size:12px;color:#111;background:linear-gradient(135deg,var(--accent),var(--accent-2));padding:2px 8px;border-radius:999px;font-weight:800}
+    .pad{border:1px solid var(--card-border); background:transparent; color:var(--text); border-radius:8px; padding:6px 8px; margin-left:8px; cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="weather-row">
+        <div class="weather">
+          <span id="weatherIcon">⛅</span>
+          <span class="temp" id="weatherTemp">—</span>
+          <span class="desc" id="weatherDesc"></span>
+        </div>
+      </div>
+      <div class="title-row">
+        <h1>Live TfL Bus & Tube Board</h1>
+        <div class="clock" id="clock">--:--</div>
+        <div class="sub">Buses • Northern line • Service status • auto-refresh 30s (10s when locked)</div>
+      </div>
+      <div class="actions-row">
+        <button class="btn" id="themeBtn" title="Switch theme">Dark</button>
+        <button class="btn primary" id="refreshBtn">Refresh</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="tabs">
+        <div class="tab active" data-view="morning">Morning</div>
+        <div class="tab" data-view="afternoon">Afternoon</div>
+        <div class="tab" data-view="tube">Tube</div>
+        <div class="tab" data-view="status">Service Status</div>
+      </div>
+
+      <div class="infobar" style="display:flex;gap:10px;align-items:center;padding:10px">
+        <div>Location: Belsize Park, London</div>
+        <div id="weatherNote" class="muted"></div>
+      </div>
+
+      <div id="viewBody"></div>
+
+      <div class="meta">
+        <div>Last updated: <span id="lastUpdated">never</span></div>
+        <div>Sources: TfL Unified API & Open-Meteo</div>
+      </div>
+    </section>
+
+    <!-- Tracker -->
+    <section class="tracker-card" id="trackerCard" style="display:none">
+      <h2 class="tracker-head" id="trackTitle">
+        Tracking <span id="lockBadge" class="lock-badge" style="display:none">Locked</span>
+        <button id="unlockBtn" class="pad" style="display:none" title="Unlock">🔓 Unlock</button>
+      </h2>
+      <div class="tracker-meta" id="trackMeta">—</div>
+      <div class="track-wrap"><div class="track" id="trackBar"></div></div>
+      <div class="tracker-meta" id="trackFooter">—</div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast">Pinned!</div>
+
+  <script>
+    /* ==== Theme & clock ==== */
+    const root=document.documentElement, themeBtn=document.getElementById('themeBtn');
+    function setTheme(t){ root.setAttribute('data-theme',t); localStorage.setItem('tfl_theme',t); themeBtn.textContent=(t==='dark')?'Dark':'Light'; }
+    setTheme(localStorage.getItem('tfl_theme')||'dark');
+    themeBtn.onclick=()=>setTheme(root.getAttribute('data-theme')==='dark'?'light':'dark');
+    function tick(){const d=new Date();clock.textContent=\`\${String(d.getHours()).padStart(2,'0')}:\${String(d.getMinutes()).padStart(2,'0')}\`;}
+    setInterval(tick,30000); tick();
+
+    /* ==== Weather (day/night) ==== */
+    async function updateWeather(){
+      try{
+        const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.55&longitude=-0.163&current=temperature_2m,weather_code,is_day&timezone=Europe%2FLondon');
+        const j=await r.json(), t=Math.round(j.current?.temperature_2m), code=j.current?.weather_code, isDay=!!j.current?.is_day;
+        const day={0:['☀️','Clear'],1:['🌤','Mainly clear'],2:['⛅','Partly cloudy'],3:['☁️','Overcast'],45:['🌫','Fog'],48:['🌫','Rime fog'],51:['🌦','Drizzle'],53:['🌦','Drizzle'],55:['🌦','Drizzle'],61:['🌧','Rain'],63:['🌧','Rain'],65:['🌧','Rain'],80:['🌧','Showers'],81:['🌧','Showers'],82:['🌧','Heavy showers'],95:['⛈','Thunderstorm']};
+        const night={0:['🌙','Clear'],1:['🌙','Mainly clear'],2:['☁️','Partly cloudy'],3:['☁️','Overcast'],45:['🌫','Fog'],48:['🌫','Rime fog'],51:['🌧','Drizzle'],53:['🌧','Drizzle'],55:['🌧','Drizzle'],61:['🌧','Rain'],63:['🌧','Rain'],65:['🌧','Rain'],80:['🌧','Showers'],81:['🌧','Showers'],82:['🌧','Heavy showers'],95:['⛈','Thunderstorm']};
+        const [ico,desc]=(isDay?day:night)[code]||[isDay?'⛅':'🌙','Weather'];
+        weatherIcon.textContent=ico; weatherTemp.textContent=(t!=null?\`\${t}°C\`:'—'); weatherDesc.textContent=desc; weatherNote.textContent='Powered by Open-Meteo';
+      }catch{ weatherNote.textContent='Weather unavailable';}
+    }
+    updateWeather(); setInterval(updateWeather, 600000);
+
+    /* ==== Tabs ==== */
+    const viewBody=document.getElementById('viewBody');
+    const tabs=[...document.querySelectorAll('.tab')];
+    let currentView='morning';
+    tabs.forEach(t=>t.onclick=()=>{tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active'); currentView=t.dataset.view; render(); attachHandlers(); refresh();});
+
+    /* ==== TfL helpers ==== */
+    const APP_ID="", APP_KEY="";
+    const qs=o=>new URLSearchParams({...o,...((APP_ID&&APP_KEY)?{app_id:APP_ID,app_key:APP_KEY}:{})}).toString();
+    const tfl=async url=>{const r=await fetch(url); if(!r.ok) throw new Error('TfL'); return r.json();};
+    const searchStopPoints=(q,m)=>tfl(\`https://api.tfl.gov.uk/StopPoint/Search?\${qs({query:q,modes:m,types:'NaptanPublicBusCoachTram'})}\`);
+    const getStopPoint=id=>tfl(\`https://api.tfl.gov.uk/StopPoint/\${id}?\${qs({})}\`);
+    async function resolveChildByLetter(place,letter){
+      const res=await searchStopPoints(place,'bus'); const L=String(letter||'').toUpperCase(); const items=[];
+      for(const m of (res.matches||[])){ items.push(m); try{ const d=await getStopPoint(m.id); (d.children||[]).forEach(c=>items.push(c)); }catch{} }
+      const hit=items.find(i=>(i.additionalProperties||[]).some(p=>p.key==='StopLetter' && (p.value||'').toUpperCase()===L));
+      return hit?.id||null;
+    }
+    const resolveStationId=async name=>{const r=await searchStopPoints(name,'tube'); if(!r.matches?.length) return null; const ex=r.matches.find(m=>/Underground Station/i.test(m.name||''))||r.matches[0]; return ex.id;};
+    const arrivalsAt=(id,m)=>tfl(\`https://api.tfl.gov.uk/StopPoint/\${encodeURIComponent(id)}/Arrivals?\${qs({modes:m})}\`);
+    const vehicleArrivals=vid=>tfl(\`https://api.tfl.gov.uk/Vehicle/\${encodeURIComponent(vid)}/Arrivals?\${qs({modes:'bus'})}\`);
+    function matchByLine(rows,line){const w=String(line).toUpperCase().trim();return rows.filter(r=>{const id=String(r.lineId||'').toUpperCase().trim(); const nm=String(r.lineName||'').toUpperCase().trim(); return id===w||nm===w||id.startsWith(w)||nm.startsWith(w);});}
+    function soonestMins(items){
+      items.sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
+      if(!items.length) return null;
+      const d=(new Date(items[0].expectedArrival)-new Date())/60000;
+      return Math.max(0, Math.round(d));
+    }
+    const norm=id=>id?id.toString().match(/^\\d+/)?.[0]||String(id):'';
+    const fmtClock=m=>{const when=new Date(Date.now()+Math.max(0,m)*60000); return \`\${String(when.getHours()).padStart(2,'0')}:\${String(when.getMinutes()).padStart(2,'0')} · in \${Math.max(0,m)}m\`;};
+
+    /* ==== ETA smoothing & formatting ==== */
+    const etaCache = new Map(); // key -> last smoothed minutes
+    function smoothMins(key, mins){
+      if(mins == null) return null;
+      const prev = etaCache.get(key);
+      if(prev == null){ etaCache.set(key, mins); return mins; }
+      const maxJump = 5; // cap jump size per refresh
+      if(Math.abs(mins - prev) > maxJump){
+        mins = prev + Math.sign(mins - prev) * maxJump;
+      }
+      const alpha = 0.6; // EMA weight
+      const smoothed = Math.round(alpha * mins + (1 - alpha) * prev);
+      etaCache.set(key, smoothed);
+      return smoothed;
+    }
+    function formatEta(mins){
+      if(mins == null) return '—';
+      if(mins <= 0) return 'Due';
+      if(mins < 2) return '<2 min';
+      return \`\${mins} min\`;
+    }
+
+    /* ==== Bus data ==== */
+    const routesConfig={
+      morning:[
+        {vips:"C, L", line:"268", origin:"Haverstock Hill", destination:"Golders Green Bus Station", stopLetter:"H",  stopId:"490003874H"},
+        {vips:"S, A, M", line:"268", origin:"Rosslyn Hill",  destination:"Golders Green Bus Station", stopLetter:"G",  stopId:"490015255G"},
+        {vips:"V", line:"210", origin:"Brent Cross Tesco",   destination:"Golders Green Bus Station", stopLetter:"T",  stopId:"490004284T"},
+        {vips:"V", line:"102", origin:"Claremont Way",       destination:"Golders Green Bus Station", stopLetter:"A",  stopId:"490005434S"},
+        {vips:"V", line:"SL10", origin:"Hendon Central Station", destination:"North Finchley Bus Station", stopLetter:"A",  stopId:"490000106A"},
+        {vips:"C, L, S, A, M", line:"13",  origin:"Golders Green", destination:"North Finchley Bus Station", stopLetter:"GU", stopId:"490015496GU"},
+        {vips:"C, L, S, A, M", line:"460", origin:"Golders Green", destination:"North Finchley Bus Station", stopLetter:"GU", stopId:"490015496GU"},
+      ],
+      afternoon:[
+        {vips:"C, L, S, A, M, V, I", line:"460", origin:"North Finchley Bus Station", destination:"Golders Green Bus Station", stopLetter:"P",  stopId:"490015443P"},
+        {vips:"C, L, S, A, M, V, I", line:"13",  origin:"North Finchley Bus Station", destination:"Golders Green Bus Station", stopLetter:"P",  stopId:"490015443P"},
+        {vips:"V", line:"SL10", origin:"North Finchley Bus Station", destination:"Hendon Central", stopLetter:"H", stopId:"490010369H"},
+        {vips:"C, L, S, A, M", line:"268", origin:"Golders Green", destination:"Pond Street / Royal Free", stopLetter:"GJ", stopId:"490000087GJ"},
+        {vips:"V", line:"102", origin:"Golders Green Station", destination:"Claremont Way", stopLetter:"GV", stopId:"490015496GV"},
+        {vips:"V", line:"210", origin:"Golders Green", destination:"Brent Cross Underground", stopLetter:"GK", stopId:"490000087GK"},
+      ]
+    };
+
+    /* ===== Shared tracker state ===== */
+    const trackerCard=document.getElementById('trackerCard');
+    const trackTitle=document.getElementById('trackTitle');
+    const lockBadge=document.getElementById('lockBadge');
+    const unlockBtn=document.getElementById('unlockBtn');
+    const trackMeta=document.getElementById('trackMeta');
+    const trackBar=document.getElementById('trackBar');
+    const trackFooter=document.getElementById('trackFooter');
+    const toast=document.getElementById('toast');
+
+    let selectedIndex=null, selectedItem=null, selectedVehicleId=null, isLocked=false, routeSlice=null, destIndex=null;
+    let lockTicker=null;
+
+    const BUS_SVG=\`<svg viewBox="0 0 32 32" role="img" aria-label="Bus"><rect x="2" y="8" width="28" height="12" rx="3" ry="3" fill="#e11d48"/><rect x="4" y="10" width="10" height="5" rx="2" ry="2" fill="white" opacity=".9"/><rect x="16" y="10" width="10" height="5" rx="2" ry="2" fill="white" opacity=".9"/><circle cx="9" cy="22" r="3" fill="#0b0b0b"/><circle cx="23" cy="22" r="3" fill="#0b0b0b"/></svg>\`;
+    const showToast=msg=>{toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),1500);};
+
+    function startLockTicker(){
+      if(lockTicker) return;
+      lockTicker=setInterval(async ()=>{
+        if(selectedItem && selectedVehicleId){
+          try{
+            const which=currentView;
+            const i=selectedIndex;
+            const etaEl=document.getElementById(\`bus-\${which}-\${i}\`);
+            if(etaEl){
+              const m=await etaForVehicleAtStop(selectedVehicleId, selectedItem.stopId);
+              const key=\`\${which}:\${i}\`;
+              const sm=smoothMins(key, m==null?null:m);
+              etaEl.textContent = isLocked ? (sm==null ? '—' : (sm<=2 ? 'Arriving' : formatEta(sm))) : formatEta(sm);
+            }
+          }catch{}
+        }
+        paintTracker();
+      }, 10000);
+    }
+    function stopLockTicker(){ if(lockTicker){ clearInterval(lockTicker); lockTicker=null; } }
+
+    async function getRouteSlice(line,startStopId){
+      const dirs=['inbound','outbound'], base=norm(startStopId);
+      for(const d of dirs){
+        try{
+          const seq=await tfl(\`https://api.tfl.gov.uk/Line/\${encodeURIComponent(line)}/Route/Sequence/\${d}?\${qs({excludeCrowding:true,serviceTypes:'Regular'})}\`);
+          for(const block of (seq.stopPointSequences||[])){
+            const idx=(block.stopPoint||[]).findIndex(sp=>sp.id===startStopId||norm(sp.id)===base);
+            if(idx!==-1){ const slice=block.stopPoint.slice(idx, idx+16).map(sp=>({id:sp.id,name:sp.name||sp.commonName||'Stop'})); return {direction:d,slice}; }
+          }
+        }catch{}
+      } return null;
+    }
+    const findDestinationIndex=(slice,dest)=>{ if(!dest) return null; const want=dest.toLowerCase().replace(/\\s+/g,' ').trim(); let best=null,bestScore=0; slice.forEach((s,i)=>{ const nm=(s.name||'').toLowerCase(); let sc=0; if(nm.includes(want)) sc=want.length; else{ const wn=want.replace(/bus\\s*station|station|stop|underground|stn|stand/gi,'').trim(); const sn=nm.replace(/bus\\s*station|station|stop|underground|stn|stand/gi,'').trim(); if(sn.includes(wn)) sc=wn.length; } if(sc>bestScore){bestScore=sc;best=i;} }); return best; };
+
+    async function paintTracker(){
+      if(!selectedItem || !selectedItem.stopId || !routeSlice){ trackBar.innerHTML='<span class="muted">Select a row to track.</span>'; trackFooter.textContent='—'; return; }
+      if(!selectedVehicleId) selectedVehicleId = await pickActiveVehicle(selectedItem.line, selectedItem.stopId);
+      const slice=routeSlice.slice; destIndex=findDestinationIndex(slice, selectedItem.destination);
+
+      // per-dot ETAs (prefer vehicle-specific)
+      const etas=await Promise.all(slice.map(async s=>{
+        if(selectedVehicleId){ const m=await etaForVehicleAtStop(selectedVehicleId,s.id); if(m!=null) return m; }
+        try{ const arr=await arrivalsAt(s.id,'bus'); const match=matchByLine(arr,selectedItem.line).sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival)); return match[0]?Math.max(0,Math.round((new Date(match[0].expectedArrival)-new Date())/60000)):null; }catch{ return null; }
+      }));
+
+      // build dots
+      trackBar.innerHTML='';
+      slice.forEach((s,i)=>{ const dot=document.createElement('div'); dot.className='stop-dot'; const mins=etas[i]; dot.title=\`\${s.name}\${mins==null?'':' • '+fmtClock(mins)}\`; const tt=document.createElement('div'); tt.className='tt'; tt.innerHTML=\`<strong>\${s.name}</strong> · \${mins==null?'—':fmtClock(mins)}\`; dot.appendChild(tt); if(i<slice.length-1){ const link=document.createElement('div'); link.className='link'; dot.appendChild(link);} trackBar.appendChild(dot); });
+
+      // find current segment using vehicle's next prediction
+      let iPrev=0,iNext=0;
+      if(selectedVehicleId){
+        try{
+          const v=await vehicleArrivals(selectedVehicleId);
+          const same=matchByLine(v, selectedItem.line).sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
+          const next=same[0];
+          if(next){ const base=id=>norm(id); const idx=slice.findIndex(s=>base(s.id)===base(next.naptanId)); iNext=Math.max(0,idx); iPrev=Math.max(0,iNext-1); }
+        }catch{}
+      }else{ let iN=etas.findIndex(m=>m!=null&&m>0); if(iN===-1)iN=etas.length-1; iNext=iN; iPrev=Math.max(0,iNext-1); }
+
+      // paint progress
+      const dots=[...trackBar.querySelectorAll('.stop-dot')];
+      dots.forEach((d,i)=>{ const link=d.querySelector('.link'); d.classList.toggle('past',i<=iPrev); d.classList.toggle('next',i===iNext); if(link){link.classList.toggle('past',i<iNext); link.classList.toggle('next',i===iNext);} });
+      if(destIndex!=null && dots[destIndex]) dots[destIndex].classList.add('dest');
+
+      // move bus icon
+      const gap=50, lerp=.4, x=(iPrev+lerp)*gap+6;
+      let bus=trackBar.querySelector('.bus-dot'); if(!bus){ bus=document.createElement('div'); bus.className='bus-dot'; bus.innerHTML=BUS_SVG; trackBar.appendChild(bus); }
+      bus.style.left=\`\${x}px\`;
+
+      // footer: stops left
+      const stopsLeft=(destIndex!=null)?Math.max(0,destIndex-iNext):null;
+      trackFooter.textContent = (stopsLeft!=null)?\`\${stopsLeft} stop\${stopsLeft===1?'':'s'} left to \${selectedItem.destination}\`:'—';
+
+      // Arrives status if locked
+      if(selectedIndex!=null){
+        const etaEl=document.getElementById(\`bus-\${currentView}-\${selectedIndex}\`);
+        if(etaEl && isLocked){
+          let status='Awaiting to Board';
+          if(iNext>0) status='Enroute';
+          if(destIndex!=null){
+            const left = (destIndex - iNext);
+            if(left <= 2) status='Arriving';
+            if(iNext>=destIndex) status='Arrived';
+          }
+          etaEl.textContent=status;
+          etaEl.style.color=(status==='Arriving'||status==='Arrived')?'var(--good)':'var(--text)';
+        }
+      }
+    }
+
+    async function pickActiveVehicle(line, stopId){
+      try{ const arr=await arrivalsAt(stopId,'bus'); const match=matchByLine(arr,line).sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival)); return match[0]?.vehicleId||null; }catch{ return null;}
+    }
+    async function etaForVehicleAtStop(vid, stopId){
+      try{ const arr=await arrivalsAt(stopId,'bus'); const m=arr.find(a=>String(a.vehicleId||'')===String(vid||'')); if(!m) return null; return Math.max(0,Math.round((new Date(m.expectedArrival)-new Date())/60000)); }catch{ return null;}
+    }
+
+    async function selectRow(i){
+      selectedIndex=i; selectedItem=routesConfig[currentView][i];
+      if(!selectedItem.stopId) selectedItem.stopId=await resolveChildByLetter(selectedItem.origin,selectedItem.stopLetter);
+      routeSlice = selectedItem.stopId ? await getRouteSlice(selectedItem.line, selectedItem.stopId) : null;
+      document.getElementById('trackerCard').style.display='';
+      trackMeta.textContent=\`\${selectedItem.origin} (\${selectedItem.stopLetter}) → \${selectedItem.destination}\`;
+      [...document.querySelectorAll('tbody tr[data-clickable="1"]')].forEach(r=>r.classList.remove('selected'));
+      const rows=[...document.querySelectorAll('tbody tr[data-clickable="1"]')]; if(rows[i]) rows[i].classList.add('selected');
+      await paintTracker();
+    }
+
+    function lockVehicle(vid){
+      if(!vid){ showToast('No vehicle id yet'); return; }
+      selectedVehicleId = vid; isLocked = true;
+      lockBadge.style.display=''; unlockBtn.style.display='';
+      startLockTicker();
+      showToast(\`Locked to vehicle \${vid}\`);
+    }
+    function unlockVehicle(){
+      isLocked=false; lockBadge.style.display='none'; unlockBtn.style.display='none';
+      stopLockTicker();
+      // clear special status; revert to minutes on next refresh
+      if(selectedIndex!=null){ const etaEl=document.getElementById(\`bus-\${currentView}-\${selectedIndex}\`); if(etaEl){ etaEl.textContent='—'; etaEl.style.color='var(--text)'; } }
+      showToast('Unlocked');
+    }
+    unlockBtn.onclick=unlockVehicle;
+
+    /* ==== Renderers (swap columns + Vehicle + padlock) ==== */
+    const lineClass=line=>\`line-\${line.replace(/\\D/g,'')}\`;
+    function renderBusTable(which){
+      const rows=routesConfig[which];
+      const head=\`<thead><tr>
+        <th>VIPs</th><th>Board at</th><th>Origin</th><th>Destination</th><th>Line</th>
+        <th style="text-align:right">Arrives</th><th style="text-align:right">Vehicle</th>
+      </tr></thead>\`;
+      const body=rows.map((r,i)=>\`
+        <tr data-clickable="1" data-idx="\${i}">
+          <td class="vips">\${r.vips}</td>
+          <td><span class="stopLetter" title="\${r.stopLetter}">\${r.stopLetter}</span></td>
+          <td>\${r.origin}</td>
+          <td>\${r.destination}</td>
+          <td><span class="chip \${lineClass(r.line)}">\${r.line}</span></td>
+          <td style="text-align:right"><span class="arrive" id="bus-\${which}-\${i}"><span class="skeleton"></span></span></td>
+          <td style="text-align:right">
+            <span class="veh" id="veh-\${which}-\${i}" class="muted">—</span>
+            <button class="pad" data-pin="\${which}:\${i}" title="Lock to this bus">🔒</button>
+          </td>
+        </tr>\`).join('');
+      return \`<div class="table-container"><table>\${head}<tbody>\${body}</tbody></table></div>\`;
+    }
+
+    /* ==== Tube view with times + platform + track ==== */
+    const tubeSegs={
+      outbound:[
+        {from:'Belsize Park Underground Station', to:'Camden Town Underground Station', key:'bp-ct', dir:'outbound'},
+        {from:'Camden Town Underground Station', to:'Woodside Park Underground Station', key:'ct-wp', dir:'outbound'}
+      ],
+      inbound:[
+        {from:'Woodside Park Underground Station', to:'Camden Town Underground Station', key:'wp-ct', dir:'inbound'},
+        {from:'Camden Town Underground Station', to:'Belsize Park Underground Station', key:'ct-bp', dir:'inbound'}
+      ]
+    };
+    function renderTube(){
+      const block=(title,meta,list)=>\`
+        <div class="tube-card">
+          <div class="tube-title">\${title}<span class="tube-meta">\${meta}</span></div>
+          <ul class="tube-list">\${list.map(s=>\`
+            <li class="tube-item" id="\${s.key}">
+              <span><strong>\${s.from.split(' Underground')[0]}</strong> → <strong>\${s.to.split(' Underground')[0]}</strong></span>
+              <span class="tube-dim" id="\${s.key}-meta">Loading…</span>
+              <span><button class="tube-btn" data-track="\${s.key}">Track</button></span>
+            </li>\`).join('')}</ul>
+        </div>\`;
+      return \`
+        <div class="tube-wrap">
+          \${block('Outbound','Belsize Park → Camden Town → Woodside Park',tubeSegs.outbound)}
+          \${block('Inbound','Woodside Park → Camden Town → Belsize Park',tubeSegs.inbound)}
+        </div>\`;
+    }
+
+    async function updateTubeLists(){
+      async function fill(seg){
+        const fromId=await resolveStationId(seg.from); const listEl=document.getElementById(\`\${seg.key}-meta\`);
+        if(!fromId){ listEl.textContent='—'; return; }
+        try{
+          const arr=await arrivalsAt(fromId,'tube');
+          // Northern only + direction
+          const on=arr.filter(a=>(a.lineId||'').toLowerCase()==='northern' && (a.direction||'').toLowerCase()===seg.dir);
+          on.sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
+          const top=on.slice(0,3);
+          listEl.textContent = top.length ? top.map(a=>{
+            const mins=Math.max(0,Math.round((new Date(a.expectedArrival)-new Date())/60000));
+            const plat=(a.platformName||'').replace(/ *Platform */i,'P');
+            const dest=a.destinationName||a.towards||'—';
+            return \`\${mins===0?'Due':mins+'m'} · \${plat||'—'} · \${dest}\`;
+          }).join('   •   ') : '—';
+        }catch{ listEl.textContent='—'; }
+      }
+      await Promise.all([...tubeSegs.outbound, ...tubeSegs.inbound].map(fill));
+    }
+
+    async function tubeTrack(key){
+      const seg=[...tubeSegs.outbound,...tubeSegs.inbound].find(s=>s.key===key); if(!seg) return;
+      const [fromId,toId]=[await resolveStationId(seg.from), await resolveStationId(seg.to)];
+      if(!fromId||!toId){ showToast('Tube stations unavailable'); return; }
+      // get slice between stations
+      let slice=null;
+      try{
+        const seq=await tfl(\`https://api.tfl.gov.uk/Line/northern/Route/Sequence/\${seg.dir}?\${qs({excludeCrowding:true,serviceTypes:'Regular'})}\`);
+        for(const block of (seq.stopPointSequences||[])){
+          const ids=(block.stopPoint||[]).map(s=>s.id);
+          const iA=ids.indexOf(fromId), iB=ids.indexOf(toId);
+          if(iA!==-1 && iB!==-1 && iB>=iA){ slice=block.stopPoint.slice(iA,iB+1).map(s=>({id:s.id,name:s.name||s.commonName||'Stop'})); break; }
+        }
+      }catch{}
+      if(!slice){ showToast('Route not found'); return; }
+
+      // render into shared tracker
+      selectedItem=null; selectedIndex=null; isLocked=false; selectedVehicleId=null;
+      trackerCard.style.display=''; lockBadge.style.display='none'; unlockBtn.style.display='none';
+      trackMeta.textContent=\`\${seg.from.split(' Underground')[0]} → \${seg.to.split(' Underground')[0]} (Northern \${seg.dir})\`;
+
+      // per-stop ETA (direction constrained)
+      async function etaTubeAt(stopId){
+        try{
+          const arr=await arrivalsAt(stopId,'tube');
+          const on=arr.filter(a=>(a.lineId||'').toLowerCase()==='northern' && (a.direction||'').toLowerCase()===seg.dir);
+          on.sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
+          if(!on[0]) return null;
+          return Math.max(0,Math.round((new Date(on[0].expectedArrival)-new Date())/60000));
+        }catch{ return null; }
+      }
+
+      const etas=await Promise.all(slice.map(s=>etaTubeAt(s.id)));
+      trackBar.innerHTML='';
+      slice.forEach((s,i)=>{ const dot=document.createElement('div'); dot.className='stop-dot'; const m=etas[i]; dot.title=\`\${s.name}\${m==null?'':' • '+fmtClock(m)}\`; const tt=document.createElement('div'); tt.className='tt'; tt.innerHTML=\`<strong>\${s.name}</strong> · \${m==null?'—':fmtClock(m)}\`; dot.appendChild(tt); if(i<slice.length-1){ const link=document.createElement('div'); link.className='link'; dot.appendChild(link);} trackBar.appendChild(dot); });
+      let iNext=etas.findIndex(m=>m!=null&&m>0); if(iNext===-1) iNext=etas.length-1;
+      const dots=[...trackBar.querySelectorAll('.stop-dot')];
+      dots.forEach((d,i)=>{ const link=d.querySelector('.link'); d.classList.toggle('past',i<iNext); d.classList.toggle('next',i===iNext); if(link){link.classList.toggle('past',i<iNext); link.classList.toggle('next',i===iNext);} });
+      let bus=trackBar.querySelector('.bus-dot'); if(!bus){ bus=document.createElement('div'); bus.className='bus-dot'; bus.innerHTML=BUS_SVG; trackBar.appendChild(bus); }
+      bus.style.left=\`\${(Math.max(0,iNext-1)+.4)*50+6}px\`;
+      const stopsLeft=Math.max(0,slice.length-1-iNext);
+      trackFooter.textContent=\`\${stopsLeft} stop\${stopsLeft===1?'':'s'} left to \${seg.to.split(' Underground')[0]}\`;
+    }
+
+    /* ==== Status view ==== */
+    function renderStatus(){
+      const ids=['268','13','460','102','210','northern'];
+      return \`<div class="status" id="statusBar">
+        \${ids.map(id=>\`<div class="pill" id="st-\${id}"><span class="dot sev-info"></span><strong>\${id.toUpperCase()}</strong><span class="muted" style="margin-left:6px">Checking…</span></div>\`).join('')}
+      </div>\`;
+    }
+    async function updateStatus(){
+      const ids=['268','13','460','102','210','northern'];
+      await Promise.all(ids.map(async id=>{
+        const el=document.getElementById(\`st-\${id}\`); if(!el) return;
+        try{
+          const data=await tfl(\`https://api.tfl.gov.uk/Line/\${id}/Status?\${qs({detail:true})}\`);
+          const s=Array.isArray(data)?data[0]:data;
+          let sev='info', text='Checking…', reason='';
+          if(s?.lineStatuses?.length){ const ls=s.lineStatuses[0]; const d=(ls.statusSeverityDescription||'').toLowerCase();
+            text=ls.statusSeverityDescription||'Status';
+            sev=/good/.test(d)?'good':(/minor|reduced/.test(d)?'warn':(/severe|closed|suspended/.test(d)?'bad':'info'));
+            reason=ls.reason||'';
+          } else { text='No data'; sev='warn'; }
+          el.innerHTML=\`<span class="dot sev-\${sev}"></span><strong>\${id.toUpperCase()}</strong><span class="muted" style="margin-left:6px">\${text}\${reason?' — '+reason:''}</span>\`;
+        }catch{ el.innerHTML=\`<span class="dot sev-bad"></span><strong>\${id.toUpperCase()}</strong><span class="muted" style="margin-left:6px">Unavailable</span>\`; }
+      }));
+    }
+
+    /* ==== Rendering & handlers ==== */
+    function render(){
+      if(currentView==='morning'||currentView==='afternoon'){
+        viewBody.innerHTML=renderBusTable(currentView);
+      }else if(currentView==='tube'){
+        viewBody.innerHTML=renderTube();
+        trackerCard.style.display='none';
+      }else if(currentView==='status'){
+        viewBody.innerHTML=renderStatus();
+        trackerCard.style.display='none';
+      }
+    }
+
+    function attachHandlers(){
+      if(currentView==='morning'||currentView==='afternoon'){
+        // click row to preview tracking
+        [...document.querySelectorAll('tbody tr[data-clickable="1"]')].forEach((tr,i)=> tr.onclick=()=>selectRow(i));
+        // padlocks — lock without needing to click row first
+        [...document.querySelectorAll('[data-pin]')].forEach(btn=>btn.onclick=async e=>{
+          e.stopPropagation();
+          const [which,iStr]=btn.getAttribute('data-pin').split(':'); const i=Number(iStr);
+          await selectRow(i); // auto-select so the tracker context matches
+          const vid=document.getElementById(\`veh-\${which}-\${i}\`)?.textContent?.trim();
+          if(vid && vid!=='—'){ lockVehicle(vid); btn.textContent='🔓'; btn.title='Unlock'; btn.onclick=(ev)=>{ev.stopPropagation(); unlockVehicle(); btn.textContent='🔒'; btn.title='Lock to this bus';}; }
+          else{ showToast('No vehicle id yet'); }
+        });
+      }else if(currentView==='tube'){
+        // list meta & track buttons
+        updateTubeLists();
+        [...document.querySelectorAll('[data-track]')].forEach(b=> b.onclick=()=>tubeTrack(b.getAttribute('data-track')));
+      }
+    }
+
+    async function updateBus(which){
+      const rows=routesConfig[which];
+      await Promise.all(rows.map(async (r,i)=>{
+        const etaEl=document.getElementById(\`bus-\${which}-\${i}\`);
+        const vehEl=document.getElementById(\`veh-\${which}-\${i}\`);
+        try{
+          let sid=r.stopId || await resolveChildByLetter(r.origin,r.stopLetter);
+          if(!sid){ etaEl.textContent='—'; etaEl.style.color='var(--muted)'; vehEl.textContent='—'; return; }
+          r.stopId=sid;
+          let data=await arrivalsAt(sid,'bus');
+          let match=matchByLine(data,r.line).sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
+          const vid=match[0]?.vehicleId||null;
+          vehEl.textContent=vid?vid:'—';
+          if(selectedIndex===i && !isLocked && vid){ selectedVehicleId=vid; } // follow if not locked
+
+          if(!(selectedIndex===i && isLocked)){
+            let mins=soonestMins(match);
+            const key=\`\${which}:\${i}\`;
+            mins = smoothMins(key, mins);
+            etaEl.textContent = formatEta(mins);
+            etaEl.style.color = mins==null ? 'var(--muted)'
+              : (mins<=2 ? 'var(--good)' : (mins<=8 ? 'var(--warn)' : 'var(--text)'));
+          }
+        }catch{ etaEl.textContent='—'; etaEl.style.color='var(--muted)'; vehEl.textContent='—'; }
+      }));
+      if(selectedItem && (currentView==='morning'||currentView==='afternoon')) await paintTracker();
+    }
+
+    async function refresh(){
+      if(currentView==='morning') await updateBus('morning');
+      else if(currentView==='afternoon') await updateBus('afternoon');
+      else if(currentView==='tube') await updateTubeLists();
+      else if(currentView==='status') await updateStatus();
+      lastUpdated.textContent=new Date().toLocaleTimeString();
+    }
+
+    function init(){ render(); attachHandlers(); refresh(); }
+    init();
+    refreshBtn.onclick=refresh;
+    setInterval(refresh, 30000);
+
+    // Service worker
+    if('serviceWorker' in navigator){ addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js')); }
+  </script>
+</body>
+</html>
