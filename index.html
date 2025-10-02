@@ -1,436 +1,497 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Live TfL Bus & Tube Board</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#8b5cf6">
-  <link rel="icon" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-512.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
+<title>SchoolRun — Live Board</title>
 
-  <style>
-    :root{
-      --bg:#0f1220; --grad-a:#1b0f2e; --grad-b:#0f1220;
-      --card:rgba(23,26,46,.92); --muted:#8a91b4; --text:#f3f5ff;
-      --accent:#8b5cf6; --accent-2:#a78bfa; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --info:#22d3ee;
-      --card-border:rgba(255,255,255,.08); --chip-text:#111; --chip-shadow:rgba(0,0,0,.28); --table-shadow:rgba(0,0,0,.35);
-      --line-268:#fb7185; --line-13:#fde047; --line-460:#60a5fa; --line-102:#34d399; --line-210:#f472b6;
-      --tag:#101327;
-    }
-    [data-theme="light"]{
-      --bg:#faf7ff; --grad-a:#ede9fe; --grad-b:#f5d0fe;
-      --card:rgba(255,255,255,.94); --muted:#5b5f7a; --text:#0f1220;
-      --accent:#7c3aed; --accent-2:#c084fc; --good:#16a34a; --warn:#d97706; --bad:#b91c1c; --info:#0891b2;
-      --card-border:rgba(17,17,17,.10); --chip-text:#111; --chip-shadow:rgba(0,0,0,.14); --table-shadow:rgba(0,0,0,.12);
-      --tag:#ffffff;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif; color:var(--text);
-      background:
-        radial-gradient(1100px 600px at 80% -10%, var(--grad-a) 0%, rgba(27,31,56,0) 60%),
-        radial-gradient(1200px 800px at -10% -30%, var(--accent) 0%, rgba(30,27,75,0) 60%),
-        linear-gradient(135deg, var(--grad-a), var(--grad-b));
-    }
-    .wrap{width:100%; max-width:1180px; margin:18px auto 28px; padding:0 12px}
+<style>
+  @font-face{font-family:"Uber Move";src:local("Uber Move"),local("UberMove-Regular");font-weight:400;font-style:normal;font-display:swap}
+  @font-face{font-family:"Uber Move";src:local("Uber Move Bold"),local("UberMove-Bold");font-weight:700;font-style:normal;font-display:swap}
+</style>
 
-    /* header */
-    header{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-    .title-row{display:flex;flex-direction:column;gap:4px}
-    h1{font-size:20px;margin:0}
-    .sub{color:var(--muted);font-size:13px}
-    .clock{font-weight:900}
-    .actions-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+<style>
+  :root{
+    --bg:#000; --panel:#0a0a0a; --card:#111; --text:#fff; --muted:#a3a3a3;
+    --border:#1f1f1f; --pill:#171717; --shadow:0 10px 20px rgba(0,0,0,.35);
+    --good:#22c55e; --warn:#f59e0b;
+    --chip-bg:#1a1a1a; --chip-text:#fff;
 
-    /* Compact toggle (isolated class names) */
-    .switch{
-      --w: 24px; --h: 14px; --pad: 2px; --thumb: calc(var(--h) - var(--pad)*2);
-      position:relative; width:var(--w); height:var(--h)
-    }
-    .switch input{position:absolute;opacity:0;inset:0}
-    .switch .track{
-      width:100%;height:100%;background:#9ca3af;border-radius:999px;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,.3); transition:background .18s ease; display:block;
-    }
-    .switch .thumb{
-      position:absolute;top:var(--pad);left:var(--pad);width:var(--thumb);height:var(--thumb);
-      border-radius:50%;background:white;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:left .18s ease;
-    }
-    .switch input:checked + .track{background:#8b5cf6}
-    .switch input:checked + .track + .thumb{left: calc(var(--w) - var(--pad) - var(--thumb))}
+    --stop-badge:#d80f2f; --stop-text:#ffffff;
 
-    .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--card-border);background:transparent;color:var(--text);cursor:pointer;font-weight:800;letter-spacing:.2px}
-    .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border:0;color:#111}
+    --gutter:10px;
+    --arrow:#a855f7;
+    --tab-bg:#eef2f71c; --tab-bg-strong:#e5e7eb33;
 
-    @media (min-width:860px){
-      header{display:grid;grid-template-columns:1fr auto auto;grid-template-areas:"title . actions";align-items:center}
-      .title-row{grid-area:title}
-      .actions-row{grid-area:actions;justify-self:end}
-    }
+    --toggle-track:#e5e7eb33; --toggle-knob:#fff; --toggle-icon:#111;
 
-    .card{background:var(--card);border:1px solid var(--card-border);box-shadow:0 14px 34px var(--table-shadow);backdrop-filter:blur(8px);border-radius:16px;margin-bottom:14px}
-    .tabs{display:flex;gap:8px;padding:10px}
-    .tab{flex:1;text-align:center;padding:14px 10px;border-radius:12px;cursor:pointer;color:var(--muted);
-      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(0,0,0,.04));border:1px solid var(--card-border);font-weight:900}
-    .tab.active{color:#111;background:linear-gradient(135deg,#e9d5ff,#a7f3d0);border:0}
+    /* Tube map */
+    --tube-line:#9ca3af;  /* dotted spine */
+    --tube-dot:#a855f7;   /* purple dots */
+    --tube-card:#111; --tube-dest:#fff;
+  }
+  body.light{
+    --bg:#fff; --panel:#ffffff; --card:#fff; --text:#111; --muted:#575757;
+    --border:#e5e7eb; --pill:#f4f5f6; --shadow:0 8px 18px rgba(0,0,0,.12);
+    --chip-bg:#f4f5f6; --chip-text:#111;
 
-    .table-container{padding:8px 10px 2px;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%}
-    table{width:100%;min-width:820px;border-collapse:separate;border-spacing:0 10px}
-    thead th{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);padding:14px 12px;text-align:left}
-    tbody tr{background:var(--card);border:1px solid var(--card-border);box-shadow:0 8px 24px var(--table-shadow)}
-    tbody tr[data-clickable="1"]{cursor:pointer}
-    tbody tr.selected{outline:2px solid var(--accent-2)}
-    tbody td{padding:16px 12px;font-size:15px}
-    tbody tr td:first-child{border-radius:12px 0 0 12px}
-    tbody tr td:last-child{border-radius:0 12px 12px 0}
+    --stop-badge:#d80f2f; --stop-text:#ffffff;
 
-    .chip{--c:#888;background:var(--c);color:var(--chip-text);display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:30px;padding:0 12px;border-radius:9px;font-weight:900;box-shadow:inset 0 -3px rgba(0,0,0,.15),0 6px 16px rgba(0,0,0,.25)}
-    .line-268{--c:var(--line-268)} .line-13{--c:var(--line-13)} .line-460{--c:var(--line-460)} .line-102{--c:var(--line-102)} .line-210{--c:var(--line-210)}
-    .stopLetter{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#d80f2f;color:#fff;font-weight:900;border:none;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+    --arrow:#7c3aed;
+    --tab-bg:#eef2f7; --tab-bg-strong:#e4e9f1;
 
-    .skeleton{height:14px;width:70px;border-radius:6px;background:linear-gradient(90deg,#1f243e,#2b3053,#1f243e);background-size:200% 100%;animation:shimmer 1.2s infinite}
-    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-    .meta{display:flex;justify-content:space-between;gap:12px;padding:14px;color:var(--muted);font-size:12px;flex-wrap:wrap}
-    .muted{color:var(--muted)}
+    --toggle-track:#e5e7eb; --toggle-knob:#111; --toggle-icon:#fff;
 
-    /* ===== Tracker (renamed to avoid .track clash) ===== */
-    .tracker-card{background:var(--card);border:1px solid var(--card-border);box-shadow:0 14px 34px var(--table-shadow);border-radius:16px;margin-bottom:14px}
-    .tracker-head{font-size:16px;margin:0;padding:12px;border-bottom:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center}
-    .tracker-meta{padding:10px 12px;color:var(--muted);font-size:13px}
-    .track-wrap{position:relative;margin:10px;padding:14px;border:1px dashed var(--card-border);border-radius:12px;background:var(--tag);overflow-x:auto;overflow-y:visible}
-    .route-track{position:relative;height:28px;min-width:520px;display:flex;align-items:center;gap:36px;padding:0 6px}
-    .stop-dot{position:relative;width:14px;height:14px;border-radius:999px;background:#6b7280;flex:0 0 14px}
-    .stop-dot.past{background:var(--good)} .stop-dot.next{background:var(--warn)} .stop-dot.dest{box-shadow:0 0 0 3px rgba(255,255,255,.18)}
-    .stop-dot::after{content:'';position:absolute;top:6px;left:14px;width:36px;height:2px;background:rgba(255,255,255,.18)}
-    .stop-dot:last-child::after{display:none}
-    .tt{position:absolute;left:50%;bottom:140%;transform:translate(-50%,0) scale(.98);white-space:nowrap;background:#0b0f25;border:1px solid var(--card-border);padding:6px 8px;border-radius:8px;color:#fff;font-size:12px;opacity:0;visibility:hidden;transition:all .12s;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:5}
-    .stop-dot:hover .tt{opacity:1;visibility:visible;transform:translate(-50%,-10px) scale(1)}
-    .link{position:absolute;top:6px;left:14px;width:36px;height:2px;background:rgba(255,255,255,.18)}
-    .link.past{background:linear-gradient(90deg,var(--good),var(--good))}
-    .link.next{background:linear-gradient(90deg,var(--warn),var(--warn))}
-    .bus-dot{position:absolute;top:-4px;width:26px;height:26px;transform:translateX(-13px);display:grid;place-items:center;filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}
-    .bus-dot svg{width:26px;height:26px}
-    .lock-badge{margin-left:8px;font-size:12px;color:#111;background:linear-gradient(135deg,var(--accent),var(--accent-2));padding:2px 8px;border-radius:999px;font-weight:800}
-    .pad{border:1px solid var(--card-border); background:transparent; color:var(--text); border-radius:8px; padding:6px 8px; margin-left:8px; cursor:pointer}
+    --tube-line:#cbd5e1; --tube-dot:#7c3aed;
+    --tube-card:#fff; --tube-dest:#111;
+  }
 
-    .status{display:flex;flex-wrap:wrap;gap:8px;padding:10px}
-    .pill{display:inline-flex;gap:8px;align-items:center;background:var(--tag);border:1px solid var(--card-border);padding:10px 12px;border-radius:12px}
-    .dot{width:10px;height:10px;border-radius:999px}
-    .sev-good{background:var(--good)} .sev-warn{background:var(--warn)} .sev-bad{background:var(--bad)} .sev-info{background:var(--info)}
-    .toast{position:fixed;right:14px;bottom:14px;background:#11152c;border:1px solid var(--card-border);color:var(--text);padding:10px 12px;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.35);opacity:0;transform:translateY(8px);transition:all .2s;z-index:99}
-    .toast.show{opacity:1;transform:none}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"Uber Move",-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,Inter,system-ui,sans-serif;
+    letter-spacing:.01em;
+  }
 
-    /* VIP chips using PNG icons (with SVG fallback) */
-    .vip-wrap{display:flex;flex-wrap:wrap;gap:8px}
-    .vip-chip{position:relative;width:34px;height:34px;cursor:pointer;display:grid;place-items:center}
-    .vip-chip img, .vip-chip svg{width:34px;height:34px;display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
-    .vip-chip .tick{
-      position:absolute;right:-4px;top:-6px;width:16px;height:16px;border-radius:50%;
-      background:#10b981;display:none;place-items:center;color:white;font-size:12px;font-weight:900;border:2px solid var(--tag)
-    }
-    .vip-chip.active .tick{display:grid}
-  </style>
+  .wrap{width:100%; max-width:none; margin:0; padding:0 var(--gutter) 18px}
+
+  /* Header */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px var(--gutter); background:var(--panel); border-bottom:1px solid var(--border); gap:10px;
+  }
+  .brand-stack{ display:flex; flex-direction:column; gap:8px; align-items:flex-start; }
+  .brand-row{ display:flex; align-items:center; gap:10px; }
+  .logo-img{height:48px;width:auto;display:block}
+  .appname{font-weight:700;font-size:18px}
+
+  .menu{ display:flex; gap:8px; }
+  .tabbtn{
+    width:46px; height:46px; display:grid; place-items:center;
+    border-radius:12px; border:1px solid var(--border);
+    background:var(--tab-bg); color:var(--arrow); cursor:pointer;
+  }
+  .tabbtn:hover{ background:var(--tab-bg-strong); }
+  .tabbtn.active{ background:var(--tab-bg); border-color:var(--border); }
+  .icon{ font-size:22px; line-height:1; user-select:none; display:inline-block; }
+  @keyframes blinkIcon { 0%,49%{opacity:1} 50%,100%{opacity:.25} }
+  .tabbtn.active .icon{ animation:blinkIcon 1s infinite }
+
+  /* Theme toggle */
+  .theme-ctl{ display:flex; align-items:center; gap:10px; }
+  .toggle{
+    position:relative; width:74px; height:34px; border-radius:999px; padding:4px;
+    background:var(--toggle-track); border:1px solid var(--border);
+    display:flex; align-items:center; cursor:pointer; user-select:none;
+  }
+  .toggle input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .knob{
+    width:26px; height:26px; border-radius:999px; background:var(--toggle-knob);
+    display:grid; place-items:center; color:var(--toggle-icon);
+    font-size:14px; font-weight:900; transform:translateX(0); transition:transform .2s ease;
+    box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:1;
+  }
+  .toggle input:checked ~ .knob{ transform:translateX(40px); }
+  .mark{ position:absolute; top:50%; transform:translateY(-50%); font-size:12px; opacity:.9; z-index:0; }
+  .mark.sun{ left:12px } .mark.moon{ right:12px }
+
+  /* Bus card */
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); overflow:visible; }
+  .table-container{ padding:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; touch-action:pan-x; }
+  table{ width:100%; min-width:880px; border-collapse:separate; border-spacing:0 6px; table-layout:fixed; }
+  thead th{ font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); padding:10px 10px; text-align:left }
+  tbody tr{ background:var(--card); border:1px solid var(--border); box-shadow:var(--shadow) }
+  tbody td{ padding:10px 10px; font-size:15px; vertical-align:top }
+  tbody tr td:first-child{border-radius:12px 0 0 12px}
+  tbody tr td:last-child{border-radius:0 12px 12px 0}
+  .ell{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+  .stopLetter{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:28px;border-radius:50%;
+    background:var(--stop-badge); color:var(--stop-text);
+    font-weight:800; line-height:1; border:none; box-shadow:0 2px 6px rgba(0,0,0,.28);
+  }
+  .chip{ display:inline-flex;align-items:center;justify-content:center; min-width:48px;height:28px;padding:0 10px;border-radius:8px;font-weight:800; background:var(--chip-bg); color:var(--chip-text); border:1px solid var(--border) }
+  .arrive{ display:flex;flex-direction:column;gap:2px;align-items:flex-end; font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1 }
+  .eta-line{ display:flex; gap:6px; white-space:nowrap } .eta-time{ font-weight:800 } .eta-veh{ opacity:.75 } .muted{ color:var(--muted) }
+  .meta{ display:flex;justify-content:space-between;gap:8px; padding:10px 12px;color:var(--muted);border-top:1px solid var(--border);font-size:12px }
+  .skeleton{height:14px;width:60px;border-radius:6px;background:linear-gradient(90deg,#1d1d1d,#2a2a2a,#1d1d1d);background-size:200% 100%;animation:shim 1.1s infinite}
+  body.light .skeleton{background:linear-gradient(90deg,#e9e9e9,#f4f4f4,#e9e9e9)}
+  @keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  /* ===== Tube schematic (Info tab) ===== */
+  .tube-wrap{
+    padding:12px;
+    display:grid;
+    grid-template-columns: 1fr 280px 1fr; /* left branch | trunk | right branch */
+    gap:16px;
+  }
+  @media (max-width: 980px){
+    .tube-wrap{ grid-template-columns: 1fr; }
+  }
+  .tube-card{ background:var(--tube-card); border:1px solid var(--border); border-radius:14px; padding:12px; }
+  .tube-title{ font-weight:800; margin:0 0 10px 0; display:flex; align-items:center; gap:8px; }
+  .tube-title .arrow{ color:var(--arrow); font-size:18px; }
+
+  /* Columns */
+  .branch-col, .trunk-col{ position:relative; }
+  .list{ position:relative; padding-left:26px; }
+  .list::before{ content:""; position:absolute; left:13px; top:6px; bottom:6px; border-left:2px dotted var(--tube-line); }
+
+  .stop{
+    position:relative; padding:8px 8px 8px 0;
+  }
+  .stop::before{
+    content:""; position:absolute; left:6px; top:16px; width:14px; height:14px; border-radius:50%;
+    background:var(--tube-dot); box-shadow:0 0 0 3px var(--tube-card);
+  }
+  .name{ font-weight:700; }
+  .eta{ color:var(--muted); font-size:13px; margin-top:2px; display:flex; gap:8px; flex-wrap:wrap }
+  .eta strong{ color:var(--tube-dest) }
+
+  /* Spur connector from Finchley Central */
+  .spur{
+    position:relative; margin-top:4px; padding-left:26px;
+  }
+  .spur::before{
+    content:""; position:absolute; top:16px; left:13px; width:34px; border-top:2px dotted var(--tube-line);
+  }
+  .sr-only{
+    position:absolute!important; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+</style>
 </head>
 <body>
+  <header class="topbar">
+    <div class="brand-stack">
+      <div class="brand-row">
+        <img class="logo-img" alt="SchoolRun"
+             src="https://image2url.com/images/1759397137116-57468b20-63d2-4c62-95af-3ccc45c30501.png">
+        <div class="appname">SchoolRun</div>
+      </div>
+      <nav class="menu" id="menuTabs">
+        <button class="tabbtn active" data-view="morning" aria-label="School bound" title="School bound">
+          <span class="icon" aria-hidden="true">▲</span><span class="sr-only">School bound</span>
+        </button>
+        <button class="tabbtn" data-view="afternoon" aria-label="Home bound" title="Home bound">
+          <span class="icon" aria-hidden="true">▼</span><span class="sr-only">Home bound</span>
+        </button>
+        <button class="tabbtn" data-view="info" aria-label="Northern line info" title="Northern line info">
+          <span class="icon" aria-hidden="true">ⓘ</span><span class="sr-only">Info</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="theme-ctl" aria-label="Theme">
+      <label class="toggle" for="themeSwitch" title="Toggle theme (Light/Dark)">
+        <input id="themeSwitch" type="checkbox" aria-label="Theme switch"/>
+        <span class="mark sun">☀︎</span>
+        <span class="mark moon">🌙</span>
+        <span class="knob" id="knob">🌙</span>
+      </label>
+    </div>
+  </header>
+
   <div class="wrap">
-    <header>
-      <div class="title-row">
-        <h1>Live TfL Bus & Tube Board</h1>
-        <div class="clock" id="clock">--:--</div>
-        <div class="sub">Buses • VIP pins • Auto-refresh 30s</div>
-      </div>
-      <div class="actions-row">
-        <label class="switch" title="Toggle theme">
-          <input id="themeToggle" type="checkbox" />
-          <span class="track"></span><span class="thumb"></span>
-        </label>
-        <button class="btn primary" id="refreshBtn">Refresh</button>
-      </div>
-    </header>
-
     <section class="card">
-      <div class="tabs">
-        <div class="tab active" data-view="morning">Morning</div>
-        <div class="tab" data-view="afternoon">Afternoon</div>
-        <div class="tab" data-view="status">Service Status</div>
-      </div>
-
       <div class="table-container" id="viewBody"></div>
-
       <div class="meta">
         <div>Last updated: <span id="lastUpdated">never</span></div>
-        <div>Sources: TfL Unified API (buses)</div>
+        <div>Auto-refresh 10s • TfL Unified API</div>
       </div>
-    </section>
-
-    <!-- Tracker -->
-    <section class="tracker-card" id="trackerCard" style="display:none">
-      <h2 class="tracker-head">
-        Tracking <span id="lockBadge" class="lock-badge" style="display:none">Locked</span>
-        <button id="unlockBtn" class="pad" style="display:none" title="Unlock">🔓 Unlock</button>
-      </h2>
-      <div class="tracker-meta" id="trackMeta">—</div>
-      <div class="track-wrap"><div class="route-track" id="trackBar"></div></div>
-      <div class="tracker-meta" id="trackFooter">—</div>
     </section>
   </div>
 
-  <div id="toast" class="toast">Pinned!</div>
+<script>
+/* THEME TOGGLE */
+(function(){
+  const sw = document.getElementById('themeSwitch');
+  const knob = document.getElementById('knob');
+  const key = 'sr_theme';
+  const setKnob = () => { knob.textContent = sw.checked ? '☀︎' : '🌙'; };
+  const saved = localStorage.getItem(key);
+  if(saved === 'light'){ document.body.classList.add('light'); sw.checked = true; }
+  setKnob();
+  sw.addEventListener('change', ()=>{
+    document.body.classList.toggle('light', sw.checked);
+    localStorage.setItem(key, sw.checked ? 'light' : 'dark');
+    setKnob();
+  });
+})();
 
-  <script>
-    // ---------- Theme & clock ----------
-    const clockEl = document.getElementById('clock');
-    const lastUpdatedEl = document.getElementById('lastUpdated');
-    const root=document.documentElement, themeToggle=document.getElementById('themeToggle');
-    function applyTheme(t){ root.setAttribute('data-theme',t); localStorage.setItem('tfl_theme',t); themeToggle.checked = (t==='light'); }
-    applyTheme(localStorage.getItem('tfl_theme')||'dark');
-    themeToggle.addEventListener('change',()=> applyTheme(themeToggle.checked?'light':'dark'));
-    function tick(){const d=new Date();clockEl.textContent=`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
-    setInterval(tick,30000); tick();
+/* TfL helpers */
+const APP_ID="", APP_KEY="";
+const qs=o=>new URLSearchParams({...o,...((APP_ID&&APP_KEY)?{app_id:APP_ID,app_key:APP_KEY}:{})}).toString();
+const tfl=async url=>{const r=await fetch(url); if(!r.ok) throw new Error('TfL'); return r.json();};
+const arrivalsAt=(id,modes)=>tfl(`https://api.tfl.gov.uk/StopPoint/${encodeURIComponent(id)}/Arrivals?${qs({modes})}`);
 
-    // ---------- TfL helpers ----------
-    const APP_ID="", APP_KEY=""; // fill if you have TfL creds
-    const qs=o=>new URLSearchParams({...o,...((APP_ID&&APP_KEY)?{app_id:APP_ID,app_key:APP_KEY}:{})}).toString();
-    const tfl=async url=>{
-      const r=await fetch(url);
-      if(!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
+/* ================= BUS BOARD ================= */
+function matchByLine(rows,line){
+  const w=String(line).toUpperCase().trim();
+  return rows.filter(r=>{
+    const id=String(r.lineId||'').toUpperCase().trim();
+    const nm=String(r.lineName||'').toUpperCase().trim();
+    return id===w||nm===w||id.startsWith(w)||nm.startsWith(w);
+  });
+}
+const minsUntil=ts=>Math.max(0,Math.round((new Date(ts)-new Date())/60000));
+function rowLineHTML(timeStr, mins, vehicleId){
+  const color = mins<=2 ? 'var(--good)' : (mins<=8 ? 'var(--warn)' : 'var(--text)');
+  return `<div class="eta-line" style="color:${color}">
+    <span class="eta-time">${timeStr}</span>
+    <span>(${mins<=0 ? 'Due' : mins+'m'})</span>
+    <span class="eta-veh">• ${vehicleId||'—'}</span>
+  </div>`;
+}
+const etaCache = new Map();
+function smooth(key,mins){
+  if(mins==null) return null;
+  const prev=etaCache.get(key);
+  if(prev==null){etaCache.set(key,mins);return mins;}
+  const maxJump=5;
+  if(Math.abs(mins-prev)>maxJump) mins = prev + Math.sign(mins-prev)*maxJump;
+  const a=0.6; const sm=Math.round(a*mins+(1-a)*prev);
+  etaCache.set(key,sm); return sm;
+}
+const routesConfig={
+  morning:[
+    {line:"268", origin:"Haverstock Hill", destination:"Golders Green Bus Station", stopLetter:"H",  stopId:"490003874H"},
+    {line:"268", origin:"Rosslyn Hill",     destination:"Golders Green Bus Station", stopLetter:"G",  stopId:"490015255G"},
+    {line:"210", origin:"Brent Cross Tesco", destination:"Golders Green Bus Station", stopLetter:"T",  stopId:"490004284T"},
+    {line:"102", origin:"Claremont Way",    destination:"Golders Green Bus Station", stopLetter:"A",  stopId:"490005434S"},
+    {line:"SL10",origin:"Hendon Central Station", destination:"North Finchley Bus Station", stopLetter:"A",  stopId:"490000106A"},
+    {line:"13",  origin:"Golders Green",    destination:"North Finchley Bus Station", stopLetter:"GU", stopId:"490015496GU"},
+    {line:"460", origin:"Golders Green",    destination:"North Finchley Bus Station", stopLetter:"GU", stopId:"490015496GU"},
+  ],
+  afternoon:[
+    {line:"460", origin:"North Finchley Bus Station", destination:"Golders Green Bus Station", stopLetter:"P",  stopId:"490015443P"},
+    {line:"13",  origin:"North Finchley Bus Station", destination:"Golders Green Bus Station", stopLetter:"P",  stopId:"490015443P"},
+    {line:"SL10",origin:"North Finchley Bus Station", destination:"Hendon Central", stopLetter:"H", stopId:"490010369H"},
+    {line:"268", origin:"Golders Green", destination:"Pond Street / Royal Free", stopLetter:"GJ", stopId:"490000087GJ"},
+    {line:"102", origin:"Golders Green Station", destination:"Claremont Way", stopLetter:"GV", stopId:"490015496GV"},
+    {line:"210", origin:"Golders Green", destination:"Brent Cross Underground", stopLetter:"GK", stopId:"490000087GK"},
+  ]
+};
+
+let currentView='morning';
+const viewBody=document.getElementById('viewBody');
+
+function renderBusTable(which){
+  const rows=routesConfig[which];
+  const colgroup = `<colgroup>
+      <col style="width:64px"><col style="width:28%"><col style="width:28%"><col style="width:10%"><col>
+    </colgroup>`;
+  const head=`<thead><tr>
+    <th>Board</th><th>Origin</th><th>Destination</th><th>Line</th>
+    <th style="text-align:right">Arrivals (next 3)</th>
+  </tr></thead>`;
+  const body=rows.map((r,i)=>`
+    <tr>
+      <td><span class="stopLetter" title="${r.stopLetter}">${r.stopLetter}</span></td>
+      <td class="ell" title="${r.origin}">${r.origin}</td>
+      <td class="ell" title="${r.destination}">${r.destination}</td>
+      <td><span class="chip">${r.line}</span></td>
+      <td style="text-align:right"><div class="arrive" id="bus-${which}-${i}">
+        <span class="skeleton"></span></div>
+      </td>
+    </tr>`).join('');
+  return `<table>${colgroup}${head}<tbody>${body}</tbody></table>`;
+}
+
+async function updateBus(which){
+  const rows=routesConfig[which];
+  await Promise.all(rows.map(async (r,i)=>{
+    const etaEl=document.getElementById(`bus-${which}-${i}`);
+    try{
+      const data=await arrivalsAt(r.stopId,'bus');
+      const match=matchByLine(data,r.line).sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
+      if(!match.length){ etaEl.textContent='—'; etaEl.classList.add('muted'); return; }
+      const html = match.slice(0,3).map((m,idx)=>{
+        let mins = minsUntil(m.expectedArrival);
+        if(idx===0) mins = smooth(`${which}:${i}`, mins);
+        const timeStr = new Date(Date.now()+Math.max(0,mins)*60000)
+                          .toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        return rowLineHTML(timeStr, mins, m.vehicleId);
+      }).join('');
+      etaEl.innerHTML = html;
+    }catch{ etaEl.textContent='—'; etaEl.classList.add('muted'); }
+  }));
+  lastUpdated.textContent=new Date().toLocaleTimeString();
+}
+
+/* ================= Northern line schematic ================= */
+
+/* Known StopPoint IDs (TfL) for this section */
+const TFL_IDS = {
+  "Camden Town":"940GZZLUCND",
+  "Chalk Farm":"940GZZLUCHF",
+  "Belsize Park":"940GZZLUBZP",
+  "Hampstead":"940GZZLUHTD",
+  "Golders Green":"940GZZLUGGN",
+  "Brent Cross":"940GZZLUBTX",
+  "Hendon Central":"940GZZLUHCL",
+  "Colindale":"940GZZLUCNDL", /* fallback resolver will fix if off */
+  "Burnt Oak":"940GZZLUBTK",
+  "Edgware":"940GZZLUEGW",
+
+  "Kentish Town":"940GZZLUKSH",
+  "Tufnell Park":"940GZZLUTFP",
+  "Archway":"940GZZLUACY",
+  "Highgate":"940GZZLUHGT",
+  "East Finchley":"940GZZLUEFY",
+  "Finchley Central":"940GZZLUFYC",
+  "West Finchley":"940GZZLUWFY",
+  "Woodside Park":"940GZZLUWOP",
+  "Totteridge & Whetstone":"940GZZLUTAW",
+  "High Barnet":"940GZZLUHBT",
+
+  "Mill Hill East":"940GZZLUMHL"
+};
+
+/* Fallback resolver if an ID above is missing/incorrect */
+async function ensureStopId(name){
+  if(TFL_IDS[name]) return TFL_IDS[name];
+  try{
+    // TfL unified search
+    const url=`https://api.tfl.gov.uk/StopPoint/Search?${qs({query:name,modes:'tube',types:'NaptanMetroStation'})}`;
+    const res = await tfl(url);
+    const cand = (res.matches||[])[0];
+    if(cand?.id){ TFL_IDS[name]=cand.id; return cand.id; }
+  }catch(e){}
+  return null;
+}
+
+/* Fetch next Northern prediction for a station by name */
+async function tubeNextByName(name){
+  const id = await ensureStopId(name);
+  if(!id) return null;
+  try{
+    const arr = await arrivalsAt(id,'tube');
+    const northern = arr.filter(a => (a.lineId||'').toLowerCase()==='northern')
+                        .sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
+    if(!northern.length) return null;
+    const a = northern[0];
+    return {
+      mins: Math.max(0, Math.round((new Date(a.expectedArrival)-new Date())/60000)),
+      time: new Date(a.expectedArrival).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+      platform: a.platformName || '—',
+      dest: a.destinationName || a.towards || '—',
+      branch: (a.destinationName||'').replace(/\s+\(.*?\)/,'').split(' via ')[0]
     };
-    const arrivalsAt=(id,m)=>tfl(`https://api.tfl.gov.uk/StopPoint/${encodeURIComponent(id)}/Arrivals?${qs({modes:m})}`);
-    const searchStopPoints=(q,m)=>tfl(`https://api.tfl.gov.uk/StopPoint/Search?${qs({query:q,modes:m,types:'NaptanPublicBusCoachTram'})}`);
-    const getStopPoint=id=>tfl(`https://api.tfl.gov.uk/StopPoint/${id}?${qs({})}`);
+  }catch(e){ return null; }
+}
 
-    async function resolveChildByLetter(place,letter){
-      const res=await searchStopPoints(place,'bus'); const L=String(letter||'').toUpperCase(); const all=[];
-      for(const m of (res.matches||[])){ all.push(m); try{ const d=await getStopPoint(m.id); (d.children||[]).forEach(c=>all.push(c)); }catch{} }
-      const hit=all.find(i=>(i.additionalProperties||[]).some(p=>p.key==='StopLetter' && (p.value||'').toUpperCase()===L));
-      return hit?.id||null;
+/* Build the schematic HTML */
+async function renderTubeSchematic(){
+  const leftBranch = [
+    "Camden Town","Chalk Farm","Belsize Park","Hampstead","Golders Green",
+    "Brent Cross","Hendon Central","Colindale","Burnt Oak","Edgware"
+  ];
+  const rightBranch = [
+    "Camden Town","Kentish Town","Tufnell Park","Archway","Highgate",
+    "East Finchley","Finchley Central","West Finchley","Woodside Park",
+    "Totteridge & Whetstone","High Barnet"
+  ];
+  const spurFrom = "Finchley Central";
+  const spurStop = "Mill Hill East";
+
+  // Helper to render one list (with live next train)
+  async function renderList(names){
+    const items = await Promise.all(names.map(async n=>{
+      const p = await tubeNextByName(n);
+      const meta = p ? `
+        <div class="eta">
+          <span><strong>${p.time}</strong> (${p.mins<=0?'Due':p.mins+'m'})</span>
+          <span>Plat <strong>${p.platform}</strong></span>
+          <span>Dest <strong>${p.dest}</strong></span>
+          <span>Branch <strong>${p.branch}</strong></span>
+        </div>` : `<div class="eta">No prediction</div>`;
+      return `<div class="stop"><div class="name">${n}</div>${meta}</div>`;
+    }));
+    return `<div class="list">${items.join('')}</div>`;
+  }
+
+  const leftHTML = await renderList(leftBranch);
+  const rightHTML = await renderList(rightBranch);
+
+  // Spur: show just one stop box connected to Finchley Central
+  const spurPred = await tubeNextByName(spurStop);
+  const spurMeta = spurPred ? `
+    <div class="eta">
+      <span><strong>${spurPred.time}</strong> (${spurPred.mins<=0?'Due':spurPred.mins+'m'})</span>
+      <span>Plat <strong>${spurPred.platform}</strong></span>
+      <span>Dest <strong>${spurPred.dest}</strong></span>
+    </div>` : `<div class="eta">No prediction</div>`;
+
+  // Assemble three columns
+  return `
+    <div class="tube-wrap">
+      <div class="tube-card branch-col">
+        <h3 class="tube-title"><span class="arrow">▲</span> Camden Town → Edgware</h3>
+        ${leftHTML}
+      </div>
+
+      <div class="tube-card trunk-col">
+        <h3 class="tube-title"><span class="arrow">⎯⎯</span> Trunk & Spur</h3>
+        <div class="list">
+          <div class="stop"><div class="name">Camden Town</div></div>
+          <div class="stop"><div class="name">Interchange to branches</div></div>
+          <div class="stop"><div class="name">Finchley Central (junction)</div></div>
+          <div class="spur">
+            <div class="stop"><div class="name">Mill Hill East</div>${spurMeta}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tube-card branch-col">
+        <h3 class="tube-title"><span class="arrow">▲</span> Camden Town → High Barnet</h3>
+        ${rightHTML}
+      </div>
+    </div>`;
+}
+
+/* Router */
+async function render(){
+  if(currentView==='morning' || currentView==='afternoon'){
+    viewBody.innerHTML = renderBusTable(currentView);
+  } else if(currentView==='info'){
+    viewBody.innerHTML = `<div class="tube-wrap"><div class="tube-card"><div class="list">
+      <div class="stop"><div class="name">Loading Northern line…</div></div></div></div></div>`;
+    try{
+      viewBody.innerHTML = await renderTubeSchematic();
+    }catch(e){
+      viewBody.innerHTML = `<div class="tube-wrap"><div class="tube-card">Unable to load Northern line data.</div></div>`;
     }
-    function matchByLine(rows,line){
-      const w=String(line).toUpperCase().trim();
-      return rows.filter(r=>{
-        const id=String(r.lineId||'').toUpperCase().trim();
-        const nm=String(r.lineName||'').toUpperCase().trim();
-        return id===w||nm===w||id.startsWith(w)||nm.startsWith(w);
-      });
-    }
-    const minsUntil=ts=>Math.max(0,Math.round((new Date(ts)-new Date())/60000));
-    function fmtAbs(m){const when=new Date(Date.now()+Math.max(0,m)*60000); return `${String(when.getHours()).padStart(2,'0')}:${String(when.getMinutes()).padStart(2,'0')}`;}
-    const fmtCell=m=> m<=0 ? 'Due' : `${fmtAbs(m)} (${m}m)`;
+  }
+}
 
-    // ---------- ETA smoothing ----------
-    const etaCache = new Map();
-    function smooth(key,mins){
-      if(mins==null) return null;
-      const prev=etaCache.get(key);
-      if(prev==null){ etaCache.set(key,mins); return mins; }
-      const maxJump=5; // cap swings
-      if(Math.abs(mins-prev)>maxJump) mins = prev + Math.sign(mins-prev)*maxJump;
-      const a=0.6; const sm=Math.round(a*mins+(1-a)*prev);
-      etaCache.set(key,sm); return sm;
-    }
+async function refresh(){
+  if(currentView==='morning' || currentView==='afternoon'){
+    await updateBus(currentView);
+  } else if(currentView==='info'){
+    try{ viewBody.innerHTML = await renderTubeSchematic(); }catch{}
+  }
+  lastUpdated.textContent=new Date().toLocaleTimeString();
+}
 
-    // ---------- VIP icons (PNG + SVG fallback) ----------
-    function blazerSVG(letter){
-      return `
-        <svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true">
-          <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#a78bfa"/>
-          </linearGradient></defs>
-          <path d="M9,8 h46 a6,6 0 0 1 6,6 v36 a6,6 0 0 1 -6,6 H9 a6,6 0 0 1 -6,-6 V14 a6,6 0 0 1 6,-6 z" fill="url(#g)"/>
-          <path d="M23 12 L32 28 L41 12" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <path d="M18 19 L25 24 M39 24 L46 19" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
-          <text x="32" y="46" text-anchor="middle" font-family="Inter,system-ui" font-size="26" font-weight="800" fill="white">${letter}</text>
-        </svg>`;
-    }
-    const vipLetters = ['C','L','A','M','S','V','I'];
-    const vipIconPath = ch => `icons/vip-${ch}.png`;
+/* Init + intervals */
+render(); refresh();
+setInterval(refresh, 10000);
 
-    function vipCell(which,i){
-      return `<div class="vip-wrap" data-vip="${which}:${i}">
-        ${vipLetters.map(ch=>`
-          <div class="vip-chip" data-ch="${ch}" title="Toggle ${ch}">
-            <img alt="VIP ${ch}" src="${vipIconPath(ch)}">
-            <div class="tick">✓</div>
-          </div>`).join('')}
-      </div>`;
-    }
-    function ensureVipIcons(){
-      document.querySelectorAll('.vip-chip img').forEach(img=>{
-        img.addEventListener('error',()=>{
-          const ch=img.closest('.vip-chip')?.getAttribute('data-ch')||'?';
-          const wrap=img.parentElement;
-          const holder=document.createElement('div');
-          holder.innerHTML=blazerSVG(ch);
-          wrap.replaceChild(holder.firstElementChild, img);
-        }, { once:true });
-      });
-    }
-
-    // ---------- Data ----------
-    const routesConfig={
-      morning:[
-        {line:"268", origin:"Haverstock Hill", destination:"Golders Green Bus Station", stopLetter:"H",  stopId:"490003874H"},
-        {line:"268", origin:"Rosslyn Hill",   destination:"Golders Green Bus Station", stopLetter:"G",  stopId:"490015255G"},
-        {line:"210", origin:"Brent Cross Tesco", destination:"Golders Green Bus Station", stopLetter:"T",  stopId:"490004284T"},
-        {line:"102", origin:"Claremont Way",  destination:"Golders Green Bus Station", stopLetter:"A",  stopId:"490005434S"},
-        {line:"SL10", origin:"Hendon Central Station", destination:"North Finchley Bus Station", stopLetter:"A",  stopId:"490000106A"},
-        {line:"13",  origin:"Golders Green",  destination:"North Finchley Bus Station", stopLetter:"GU", stopId:"490015496GU"},
-        {line:"460", origin:"Golders Green",  destination:"North Finchley Bus Station", stopLetter:"GU", stopId:"490015496GU"},
-      ],
-      afternoon:[
-        {line:"460", origin:"North Finchley Bus Station", destination:"Golders Green Bus Station", stopLetter:"P",  stopId:"490015443P"},
-        {line:"13",  origin:"North Finchley Bus Station", destination:"Golders Green Bus Station", stopLetter:"P",  stopId:"490015443P"},
-        {line:"SL10", origin:"North Finchley Bus Station", destination:"Hendon Central", stopLetter:"H", stopId:"490010369H"},
-        {line:"268", origin:"Golders Green", destination:"Pond Street / Royal Free", stopLetter:"GJ", stopId:"490000087GJ"},
-        {line:"102", origin:"Golders Green Station", destination:"Claremont Way", stopLetter:"GV", stopId:"490015496GV"},
-        {line:"210", origin:"Golders Green", destination:"Brent Cross Underground", stopLetter:"GK", stopId:"490000087GK"},
-      ]
-    };
-
-    // ---------- UI renderers ----------
-    const viewBody=document.getElementById('viewBody');
-    const tabs=[...document.querySelectorAll('.tab')];
-    let currentView='morning';
-
-    tabs.forEach(t=>t.onclick=()=>{
-      tabs.forEach(x=>x.classList.remove('active'));
-      t.classList.add('active');
-      currentView=t.dataset.view;
-      render();
-      attachHandlers();
-      ensureVipIcons();
-      refresh();
-    });
-
-    function renderBusTable(which){
-      const rows=routesConfig[which];
-      const head=`<thead><tr>
-        <th>VIPs</th><th>Board</th><th>Origin</th><th>Destination</th><th>Line</th>
-        <th style="text-align:right">Arrives</th><th style="text-align:right">Vehicle</th>
-      </tr></thead>`;
-      const body=rows.map((r,i)=>`
-        <tr data-clickable="1" data-idx="${i}">
-          <td>${vipCell(which,i)}</td>
-          <td><span class="stopLetter" title="${r.stopLetter}">${r.stopLetter}</span></td>
-          <td>${r.origin}</td>
-          <td>${r.destination}</td>
-          <td><span class="chip line-${r.line.replace(/\D/g,'')}">${r.line}</span></td>
-          <td style="text-align:right"><span class="arrive" id="bus-${which}-${i}"><span class="skeleton"></span></span></td>
-          <td style="text-align:right"><span class="veh" id="veh-${which}-${i}">—</span></td>
-        </tr>`).join('');
-      return `<table>${head}<tbody>${body}</tbody></table>`;
-    }
-    function renderStatus(){ return `<div class="status"><div class="pill"><span class="dot sev-info"></span><strong>Live</strong><span class="muted" style="margin-left:6px">Running</span></div></div>`; }
-
-    function render(){
-      if(currentView==='morning'||currentView==='afternoon'){ viewBody.innerHTML=renderBusTable(currentView); }
-      else { viewBody.innerHTML=renderStatus(); document.getElementById('trackerCard').style.display='none'; }
-    }
-
-    function attachVipHandlers(which){
-      document.querySelectorAll(`.vip-wrap[data-vip^="${which}:" ]`).forEach(wrap=>{
-        const [w,iStr]=wrap.getAttribute('data-vip').split(':'); const i=Number(iStr);
-        const selected = getVipStore()[`${w}:${i}`] ? new Set(getVipStore()[`${w}:${i}`]) : new Set();
-        wrap.querySelectorAll('.vip-chip').forEach(chip=>{
-          const ch=chip.getAttribute('data-ch'); if(selected.has(ch)) chip.classList.add('active');
-          chip.onclick=(e)=>{ e.stopPropagation();
-            chip.classList.toggle('active');
-            const store=getVipStore(); const key=`${w}:${i}`;
-            const set=new Set(store[key]||[]);
-            chip.classList.contains('active')?set.add(ch):set.delete(ch);
-            store[key]=[...set]; setVipStore(store);
-          };
-        });
-      });
-    }
-
-    function attachHandlers(){
-      if(currentView==='morning'||currentView==='afternoon'){
-        [...document.querySelectorAll('tbody tr[data-clickable="1"]')].forEach((tr,i)=> tr.onclick=()=>selectRow(i));
-        attachVipHandlers(currentView);
-      }
-    }
-
-    // ---------- Bus updater ----------
-    function soonestMins(items){
-      items.sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
-      if(!items.length) return null;
-      return minsUntil(items[0].expectedArrival);
-    }
-
-    async function updateBus(which){
-      const rows=routesConfig[which];
-      await Promise.all(rows.map(async (r,i)=>{
-        const etaEl=document.getElementById(`bus-${which}-${i}`);
-        const vehEl=document.getElementById(`veh-${which}-${i}`);
-        try{
-          let sid=r.stopId || await resolveChildByLetter(r.origin,r.stopLetter);
-          if(!sid){ etaEl.textContent='—'; etaEl.style.color='var(--muted)'; vehEl.textContent='—'; return; }
-          r.stopId=sid;
-
-          const data=await arrivalsAt(sid,'bus');
-          const match=matchByLine(data,r.line).sort((a,b)=>new Date(a.expectedArrival)-new Date(b.expectedArrival));
-          const vid=match[0]?.vehicleId||null;
-          vehEl.textContent=vid?vid:'—';
-
-          let mins=soonestMins(match);
-          mins = smooth(`${which}:${i}`, mins);
-
-          if(mins==null){
-            etaEl.textContent='—';
-            etaEl.style.color='var(--muted)';
-            etaEl.removeAttribute('title');
-          }else{
-            etaEl.textContent = fmtCell(mins);
-            etaEl.title = fmtCell(mins);
-            etaEl.style.color = mins<=2 ? 'var(--good)' : (mins<=8 ? 'var(--warn)' : 'var(--text)');
-          }
-        }catch(e){
-          etaEl.textContent='—'; etaEl.style.color='var(--muted)'; etaEl.removeAttribute('title'); vehEl.textContent='—';
-          console.error('updateBus error', e);
-        }
-      }));
-      lastUpdatedEl.textContent=new Date().toLocaleTimeString();
-    }
-
-    async function refresh(){
-      if(currentView==='morning') await updateBus('morning');
-      else if(currentView==='afternoon') await updateBus('afternoon');
-      else {/* status only */}
-    }
-
-    // ---------- Minimal tracker cue ----------
-    const trackerCard=document.getElementById('trackerCard'),
-          trackMeta=document.getElementById('trackMeta'),
-          trackBar=document.getElementById('trackBar'),
-          trackFooter=document.getElementById('trackFooter');
-
-    async function selectRow(i){
-      const r=routesConfig[currentView][i];
-      trackerCard.style.display='';
-      trackMeta.textContent=`${r.origin} (${r.stopLetter}) → ${r.destination} — ${r.line}`;
-      trackBar.innerHTML='';
-      const dot=document.createElement('div'); dot.className='stop-dot next'; dot.innerHTML=`<div class="tt"><strong>${r.origin}</strong></div>`;
-      trackBar.appendChild(dot);
-      trackFooter.textContent=`Tracking ${r.line} towards ${r.destination}`;
-    }
-
-    // ---------- Boot ----------
-    function init(){ render(); attachHandlers(); ensureVipIcons(); refresh(); }
-    init();
-    document.getElementById('refreshBtn').onclick=refresh;
-    setInterval(refresh,30000);
-
-    // Optional service worker
-    if('serviceWorker' in navigator){
-      window.addEventListener('load',()=>{ navigator.serviceWorker.register('service-worker.js').catch(()=>{}); });
-    }
-  </script>
+/* Tabs */
+document.querySelectorAll('#menuTabs .tabbtn').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    document.querySelectorAll('#menuTabs .tabbtn').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    await render();
+    await refresh();
+  });
+});
+</script>
 </body>
 </html>
